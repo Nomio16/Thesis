@@ -1,0 +1,57 @@
+\documentclass[12pt,a4paper]{report}
+\usepackage{fontspec}
+\setmainfont{Times New Roman}
+\usepackage[mongolian]{babel}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{a4paper, left=3cm, right=2cm, top=2cm, bottom=2cm}
+\usepackage{titlesec}
+\usepackage{tocloft}
+\usepackage{setspace}
+\onehalfspacing
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    {\large МОНГОЛ УЛСЫН ИХ СУРГУУЛЬ \\ МЭДЭЭЛЛИЙН ТЕХНОЛОГИ, ЭЛЕКТРОНИКИЙН СУРГУУЛЬ\par}
+    \vspace{1.5cm}
+    {\large МЭДЭЭЛЭЛ, КОМПЬЮТЕРЫН УХААНЫ ТЭНХИМ\par}
+    \vspace{4cm}
+    {\Large\bfseries Пүрэвдоржийн Номин-Эрдэнэ\par}
+    \vspace{1.5cm}
+    {\huge\bfseries Сошиал мониторингийн систем дэх агуулгын шинжилгээ, сэдэв загварчлалын шийдэл\par}
+    \vspace{1cm}
+    {\large (Content Analysis and Topic Modeling for Social Monitoring Systems)\par}
+    \vspace{2cm}
+    {\large Мэдээллийн технологи (D061304)\\
+    Бакалаврын судалгааны ажлын тайлан\par}
+    \vfill
+    УДИРДАСАН БАГШ: ............................... \par
+    \vspace{1cm}
+    Улаанбаатар хот \\ \the\year{} он
+\end{titlepage}
+
+\pagenumbering{roman}
+\chapter*{Зохиогчийн баталгаа}
+\addcontentsline{toc}{chapter}{Зохиогчийн баталгаа}
+Миний бие Пүрэвдоржийн Номин-Эрдэнэ "Сошиал мониторингийн систем дэх агуулгын шинжилгээ, сэдэв загварчлалын шийдэл" сэдэвтэй судалгааны ажлыг өөрөө бие даан хийж гүйцэтгэсэн бөгөөд бусдын оюуны өмч, бүтээлээс хуулбарлаагүй болохыг баталж байна. Энэхүү бүтээл нь урьд өмнө өөр ямар нэгэн зэрэг горилж хамгаалагдаагүй болно.
+
+\tableofcontents
+\listoffigures
+\listoftables
+
+\clearpage
+\pagenumbering{arabic}
+
+\input{chapters/1_introduction}
+\input{chapters/2_theoretical_background}
+\input{chapters/3_system_analysis_and_design}
+\input{chapters/4_implementation_and_testing}
+\input{chapters/5_conclusion}
+
+\bibliographystyle{plain}
+\bibliography{references}
+
+\end{document}

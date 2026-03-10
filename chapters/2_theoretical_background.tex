@@ -1,0 +1,23 @@
+\chapter{Онолын судалгаа}
+
+\section{Агуулгын шинжилгээний орчин үеийн хэрэгцээнүүд}
+Их хэмжээний бүтэцлэгдээгүй текст өгөгдөл дээр дүн шинжилгээ хийхэд NLP-ийн дараах технологиуд голчилж байна: Embedding, Topic Modeling, Named Entity Recognition (NER), Sentiment Analysis, Similarity Analysis, Network Analysis. 
+
+\subsection{Embedding ба Текстийн утгын дүрслэл}
+Text embedding нь текстэн мэдээллийг олон хэмжээст тоон вектор хэлбэрт хувиргах арга юм. Энэ аргаар үг, өгүүлбэр, баримт бичгүүдийг тоон орон зайд дүрслэх боломжтой болдог. Transformer архитектур дээр суурилсан Sentence-BERT, MPNet зэрэг загварууд нь текстүүдийн similarity хэмжих, topic classification хийх зорилгоор өргөн хэрэглэгдэж байна. 
+
+\section{Сэдэв загварчлал (Topic Modeling)}
+Topic modeling нь их хэмжээний текстэн өгөгдлөөс далд сэдвүүдийг автоматаар илрүүлэх unsupervised machine learning арга юм. Түгээмэл алгоритмуудад:
+\begin{itemize}
+    \item \textbf{LDA (Latent Dirichlet Allocation):} Магадлалд суурилсан арга. 
+    \item \textbf{BERTopic:} Transformer embedding болон HDBSCAN clustering ашигладаг орчин үеийн арга.
+    \item \textbf{Predefined Topic Classification:} Урьдчилан тодорхойлсон сэдвийн embedding үүсгэн Cosine similarity ашиглан хамгийн төстэй сэдэвт ангилдаг. Энэ нь маш хурдан бөгөөд масштаблахад хялбар арга юм.
+\end{itemize}
+
+\section{Нэрлэсэн объект таних (NER) ба Сүлжээний шинжилгээ (Network Analysis)}
+\textbf{NER (Named Entity Recognition)} нь текст доторх PERSON, ORG, DATE, GPE, EVENT зэрэг нэрлэсэн объектуудыг илрүүлэх зорилготой. Үүнийг сэдэв загварчлалтай хослуулан ашигласнаар тухайн сэдвийн хүрээнд "ямар хүмүүс, ямар байгууллага, хаана" гэдэг мэдээллийг гаргаж авах боломжтой.
+
+\textbf{Network Analysis} нь NER ашиглан илрүүлсэн entity-үүдийн хоорондын харилцааг (Co-occurrence network) граф хэлбэрээр судлах арга юм. Энэ аргаар мэдээллийн төв зангилаа, хамгийн нөлөөтэй хүн болон байгууллагыг (Degree Centrality, Betweenness) тодорхойлох боломжтой.
+
+\section{Дүгнэлт}
+Текст боловсруулах аргуудыг (DB-д суурилсан мэдлэгийн сан, Pretrained BERT загвар, LLM API) харьцуулан үзвэл, LLM API нь зардал ихтэй бөгөөд latency өндөр, харин мэдлэгийн сангийн арга нь гараар шинэчлэх шаардлага ихтэй байдаг. Тиймээс Pretrained BERT загварыг ашиглах нь хурд (latency) болон нарийвчлалын хувьд хамгийн тохиромжтой балансыг бүрдүүлж байна.
