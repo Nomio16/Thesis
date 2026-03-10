@@ -11,6 +11,12 @@
 \usepackage{setspace}
 \onehalfspacing
 
+% Rename Lists
+\renewcommand{\contentsname}{ГАРЧИГ}
+\renewcommand{\listfigurename}{ЗУРГИЙН ЖАГСААЛТ}
+\renewcommand{\listtablename}{ХҮСНЭГТИЙН ЖАГСААЛТ}
+\renewcommand{\bibname}{НОМ ЗҮЙ}
+
 \begin{document}
 
 \begin{titlepage}
@@ -35,23 +41,35 @@
 
 \pagenumbering{roman}
 \chapter*{Зохиогчийн баталгаа}
-\addcontentsline{toc}{chapter}{Зохиогчийн баталгаа}
 Миний бие Пүрэвдоржийн Номин-Эрдэнэ "Сошиал мониторингийн систем дэх агуулгын шинжилгээ, сэдэв загварчлалын шийдэл" сэдэвтэй судалгааны ажлыг өөрөө бие даан хийж гүйцэтгэсэн бөгөөд бусдын оюуны өмч, бүтээлээс хуулбарлаагүй болохыг баталж байна. Энэхүү бүтээл нь урьд өмнө өөр ямар нэгэн зэрэг горилж хамгаалагдаагүй болно.
 
+\newpage
 \tableofcontents
+\newpage
 \listoffigures
+\newpage
 \listoftables
 
 \clearpage
 \pagenumbering{arabic}
 
-\input{chapters/1_introduction}
-\input{chapters/2_theoretical_background}
-\input{chapters/3_system_analysis_and_design}
-\input{chapters/4_implementation_and_testing}
-\input{chapters/5_conclusion}
+\input{chapters/0_frontmatter}
+\input{chapters/1_theoretical_background}
+\input{chapters/2_system_analysis_and_design}
+\input{chapters/3_implementation_and_testing}
+\input{chapters/4_conclusion}
 
+\newpage
 \bibliographystyle{plain}
+\addcontentsline{toc}{chapter}{НОМ ЗҮЙ}
 \bibliography{references}
+
+\appendix
+\chapter*{ХАВСРАЛТ}
+\addcontentsline{toc}{chapter}{ХАВСРАЛТ}
+\section*{A. ХЭРЭГЖҮҮЛЭЛТИЙН ҮР ДҮН}
+...
+\section*{B. КОДЫН ЖИШЭЭ}
+...
 
 \end{document}
