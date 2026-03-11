@@ -1,9 +1,12 @@
 \documentclass[12pt,a4paper]{report}
 \usepackage{fontspec}
-\setmainfont{Times New Roman}
-\usepackage[mongolian]{babel}
+\setmainfont{Liberation Serif}
+\setmonofont{Liberation Mono}
+\newfontfamily\cyrillicfonttt{Liberation Mono}
+\usepackage{polyglossia}
+\setmainlanguage{mongolian}
 \usepackage{graphicx}
-\usepackage{hyperref}
+\usepackage[hidelinks]{hyperref}
 \usepackage{geometry}
 \geometry{a4paper, left=3cm, right=2cm, top=2cm, bottom=2cm}
 \usepackage{titlesec}
@@ -20,28 +23,61 @@
 \begin{document}
 
 \begin{titlepage}
+    % FIRST PAGE (Outer Cover)
+    \thispagestyle{empty}
     \centering
-    {\large МОНГОЛ УЛСЫН ИХ СУРГУУЛЬ \\ МЭДЭЭЛЛИЙН ТЕХНОЛОГИ, ЭЛЕКТРОНИКИЙН СУРГУУЛЬ\par}
-    \vspace{1.5cm}
-    {\large МЭДЭЭЛЭЛ, КОМПЬЮТЕРЫН УХААНЫ ТЭНХИМ\par}
+    {\large\bfseries МОНГОЛ УЛСЫН ИХ СУРГУУЛЬ \\ МЭДЭЭЛЛИЙН ТЕХНОЛОГИ, ЭЛЕКТРОНИКИЙН СУРГУУЛЬ\par}
+    {\large\bfseries МЭДЭЭЛЭЛ, КОМПЬЮТЕРЫН УХААНЫ ТЭНХИМ\par}
     \vspace{4cm}
-    {\Large\bfseries Пүрэвдоржийн Номин-Эрдэнэ\par}
+    {\Large Пүрэвдоржийн Номин-Эрдэнэ\par}
+    \vspace{2.5cm}
+    {\Huge\bfseries Сошиал мониторингийн систем дэх агуулгын шинжилгээ, сэдэв загварчлалын шийдэл\par}
+    \vspace{0.5cm}
+    {\Large (Content Analysis and Topic Modeling for Social Monitoring Systems)\par}
     \vspace{1.5cm}
-    {\huge\bfseries Сошиал мониторингийн систем дэх агуулгын шинжилгээ, сэдэв загварчлалын шийдэл\par}
-    \vspace{1cm}
-    {\large (Content Analysis and Topic Modeling for Social Monitoring Systems)\par}
-    \vspace{2cm}
-    {\large Мэдээллийн технологи (D061304)\\
-    Бакалаврын судалгааны ажлын тайлан\par}
+    {\large Прорграмм хангамж (D061302)\\
+    Бакалаврын судалгааны ажил\par}
     \vfill
-    УДИРДАСАН БАГШ: ............................... \par
-    \vspace{1cm}
-    Улаанбаатар хот \\ \the\year{} он
+    Улаанбаатар \\ \the\year{} оны 3 сар
+    
+    \newpage
+    % SECOND PAGE (Inner Cover)
+    \centering
+    {\large\bfseries МОНГОЛ УЛСЫН ИХ СУРГУУЛЬ \\ МЭДЭЭЛЛИЙН ТЕХНОЛОГИ, ЭЛЕКТРОНИКИЙН СУРГУУЛЬ\par}
+    {\large\bfseries МЭДЭЭЛЭЛ, КОМПЬЮТЕРЫН УХААНЫ ТЭНХИМ\par}
+    \vspace{6cm}
+    {\Huge\bfseries Сошиал мониторингийн систем дэх агуулгын шинжилгээ, сэдэв загварчлалын шийдэл\par}
+    \vspace{0.5cm}
+    {\Large (Content Analysis and Topic Modeling for Social Monitoring Systems)\par}
+    \vspace{1.5cm}
+    {\large Прорграмм хангамж (D061302)\\
+    Бакалаврын судалгааны ажил\par}
+    \vspace{2.5cm}
+    
+    \begin{flushleft}
+        \hspace{3cm} Удирдагч: \hspace{3cm} Ж.Үйтүмэн\\
+        \vspace{0.5cm}
+        \hspace{3cm} Гүйцэтгэсэн: \hspace{2.5cm} П.Номин-Эрдэнэ (22b1num4640)
+    \end{flushleft}
+
+    \vfill
+    Улаанбаатар \\ \the\year{} оны 3 сар
 \end{titlepage}
 
 \pagenumbering{roman}
 \chapter*{Зохиогчийн баталгаа}
-Миний бие Пүрэвдоржийн Номин-Эрдэнэ "Сошиал мониторингийн систем дэх агуулгын шинжилгээ, сэдэв загварчлалын шийдэл" сэдэвтэй судалгааны ажлыг өөрөө бие даан хийж гүйцэтгэсэн бөгөөд бусдын оюуны өмч, бүтээлээс хуулбарлаагүй болохыг баталж байна. Энэхүү бүтээл нь урьд өмнө өөр ямар нэгэн зэрэг горилж хамгаалагдаагүй болно.
+Миний бие Пүрэвдоржийн Номин-Эрдэнэ "Сошиал мониторингийн систем дэх агуулгын шинжилгээ, сэдэв загварчлалын шийдэл" сэдэвтэй судалгааны ажлыг гүйцэтгэсэн болохыг зарлаж дараах зүйлсийг баталж байна:
+\begin{itemize}
+    \item Ажил нь бүхэлдээ эсвэл ихэнхдээ Монгол Улсын Их Сургуулийн зэрэг горилохоор дэвшүүлсэн болно.
+    \item Энэ ажлын аль нэг хэсгийг эсвэл бүхлээр нь ямар нэг их, дээд сургуулийн зэрэг горилохоор оруулж байгаагүй.
+    \item Бусдын хийсэн ажлаас хуулбарлаагүй, ашигласан бол ишлэл, зүүлт хийсэн.
+    \item Ажлыг би өөрөө (хамтарч) хийсэн ба миний хийсэн ажил, үзүүлсэн дэмжлэгийг дипломын ажилд тодорхой тусгасан.
+    \item Ажилд тусалсан бүх эх сурвалжид талархаж байна.
+\end{itemize}
+\vspace{1cm}
+Гарын үсэг: \rule{4cm}{0.4pt} \\
+\vspace{0.5cm}
+Огноо: \rule{4cm}{0.4pt}
 
 \newpage
 \tableofcontents

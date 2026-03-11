@@ -3,12 +3,12 @@
 Энэхүү LaTeX төслийг хэрхэн хөрвүүлэх (compile) болон засварлах талаарх заавар:
 
 ## 1. Шаардлагатай программ суулгах
-Монгол хэл (кирилл үсэг) болон \`Times New Roman\` фонт ашиглаж байгаа тул энгийн \`pdflatex\`-ийн оронд **\`xelatex\`** ашиглах хэрэгтэй.
+Монгол хэл (кирилл үсэг) болон \`Liberation Serif\` фонт (Times New Roman-тай ижил) ашиглаж байгаа тул энгийн \`pdflatex\`-ийн оронд **\`xelatex\`** ашиглах хэрэгтэй.
 
-Убунту / Линукс дээр дараах комманд ашиглаж LaTeX-г суулгана:
+Убунту / Линукс дээр дараах комманд ашиглаж LaTeX болон фонтыг суулгана:
 \`\`\`bash
 sudo apt update
-sudo apt install texlive-full texlive-xetex texlive-lang-cyrillic
+sudo apt install texlive-full texlive-xetex texlive-lang-cyrillic fonts-liberation
 \`\`\`
 
 ## 2. Төслийг хөрвүүлэх (Compile to PDF)
