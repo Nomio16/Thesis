@@ -1,20 +1,551 @@
 \chapter{Системийн шинжилгээ ба зохиомж}
-\section{Системийн ерөнхий архитектур}
-Энэхүү судалгааны ажлын систем нь сошиал платформуудаас (Facebook, News, Blog) цугларсан өгөгдлийг хүлээн авч, BERT загвар болон NLP-д суурилсан аргуудаар боловсруулан харагдах байдалд оруулах архитектуртай. Үндсэн архитектур дараах хэсгүүдээс бүрдэнэ:
-\begin{enumerate}
-    \item \textbf{Data Collection (Өгөгдөл цуглуулах):} Сошиал эх сурвалжаас API эсвэл Scraper ашиглан Data Source үүсгэх.
-    \item \textbf{Preprocessing (Урьдчилсан боловсруулалт):} Текст цэвэрлэх, зохисгүй үгс, emoji зэргийг цэвэрлэх алхам.
-    \item \textbf{Embedding \& Topic Detection (Векторжуулалт ба Сэдэв илрүүлэх):} Mongolian BERT ашиглан текстийг хувиргах, дараа нь BERTopic эсвэл Cosine Similarity-д суурилсан сэдэв илрүүлэх.
-    \item \textbf{NER болон Network Analysis (Нэрлэсэн объект таних болон сүлжээний шинжилгээ):} Сэдвийн дагуух хүмүүс, байршил болон байгууллагуудыг олох, тэдгээрийн уялдааг гаргах.
-    \item \textbf{Sentiment Analysis:} Тухайн сэдэвт хэрхэн хандаж буйг эерэг, сөрөг, саармаг ангиллаар дүгнэх.
-    \item \textbf{Dashboard (Хяналтын самбар):} Эцсийн үр дүнг хэрэглэгчид график, диаграмм (Network Graph, Bar charts) байдлаар харуулах.
-\end{enumerate}
 
-\section{Мэдээллийн урсгалын загвар (Data Flow)}
-Системийн мэдээллийн урсгал нь "Data Source $\rightarrow$ Өгөгдөл цуглуулах модуль $\rightarrow$ Өгөгдлийн сан (Цуглуулсан өгөгдөл) $\rightarrow$ Өгөгдөл боловсруулалт ба шинжилгээ $\rightarrow$ Боловсруулсан өгөгдлийн сан $\rightarrow$ Хяналтын самбар" гэсэн дарааллаар ажиллана. 
+ Энэхүү судалгаа болон үр дүнг нь зөвхөн Sumbee.mn дотоод хэрэгцээнд зориулсан хаалттай хэрэгжүүлэлт биш, харин гадаад судлаачид, хөгжүүлэгчид ашиглах, туршилт хийх боломжтой \textbf{нээлттэй Public API} болгон зохиомжлох нь зүйтэй юм. Ингэснээр:
 
-\section{Тооцооллын болон системийн шаардлага}
-\textbf{Моделийн хэмжээ ба Инференс хугацаа:} BERT base загварыг ашиглах үед 110M параметр буюу ойролцоогоор 420 MB хэмжээтэй байх бөгөөд T4 GPU ашиглан инференсийг ойролцоогоор 20-60 ms хугацаанд, секундэд 200-500 өгүүлбэр боловсруулах түвшинд тооцоолов. Харин CPU дээр 300-800 ms зарцуулдаг тул бодит production үед GPU болон боловсруулалтын нөөцийн зөв хуваарилалт шаардлагатай.
+\begin{itemize}
+    \item Судлаачид, өгөгдлийн шинжээчид NLP pipeline-ийг өөрийн датасет дээр туршиж, гаралтыг шинжлэх боломжтой болно.
+    \item Гуравдагч тал хөгжүүлэгчид public API - ийг шууд дуудаж ажиллуулан турших хэрэглэх боломжтой болгох.
+    \item Sumbee.mn-ийн Processing Server-т NLP модуль нэмэх интеграцийн ажил болон нээлттэй API-ийн ажил ижил хөгжүүлэлтийн суурь дээр явагдна.
+\end{itemize}
 
-\section{NER Training ба Загварын сонголт}
-NER сургахад \texttt{Davlan/bert-base-multilingual-cased-ner-hrl} HuggingFace загварыг ашиглах бөгөөд энэ нь өмнөх хуучирсан монгол хэлний нээлттэй загваруудын дутагдлыг (dependency conflict болон updated weights байхгүй) арилгаснаар Colab дээр шууд ажиллах боломжийг олгож байна.
+Энэ шаардлагыг хангах зохитой архитектурын загвар бол \textbf{Hexagonal Architecture} (Ports \& Adapters) юм. Энэ загварт NLP Domain Core нь FastAPI, Next.js, Sumbee-ийн дэд бүтцийн талаар мэддэггүй, цэвэр бизнес логик хэвээр байна. Гадны технологи зөвхөн ``Adapter'' дамжуулан холбогдох тул нэг NLP цөмийг гурван хувилбарт дахин ашиглах боломж бий болдог:
+
+\begin{itemize}
+    \item Судлаачид болон өгөгдлийн шинжээчид NLP pipeline-ийг өөрсдийн датасет дээр туршин, үр дүнг нарийвчлан шинжлэх боломж бүрдэнэ.
+    \item Гуравдагч талын хөгжүүлэгчид public API-ийг шууд дуудаж, турших болон ашиглах боломжтой болно.
+    \item Sumbee.mn-ийн Processing Server-т NLP модуль нэвтрүүлэх интеграцийн ажил болон нээлттэй API хөгжүүлэлт нь нэг ижил хөгжүүлэлтийн суурин дээр хийгдэнэ.
+\end{itemize}
+Энэ бүлэгт системийн шаардлагуудыг тодорхойлж, дээрх гурван хувилбарын архитектурыг диаграммаар дүрслэн, Hexagonal зохиомж, NLP pipeline-ийн мэдээллийн урсгал, дарааллын диаграмм болон өгөгдлийн сангийн бүтцийг танилцуулна.
+
+% ================================================================
+\section{Системийн шаардлагын шинжилгээ}
+% ================================================================
+
+\subsection{Функциональ шаардлагууд}
+
+Системийн функциональ шаардлагуудыг Sumbee.mn системд хийсэн шаардлагын шинжилгээ болон NLP pipeline-ийн техникийн боломжид тулгуурлан тодорхойллоо. 
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{|c|c|p{2.5cm}|p{5cm}|p{1.8cm}|c|}
+\hline
+\textbf{№} & \textbf{Код} & \textbf{Нэр} & \textbf{Тайлбар} & \textbf{Хэрэглэгч} & \textbf{Эрэмбэ} \\ \hline
+1 & F-01 & Өгөгдөл оруулах & CSV файл эсвэл шууд текст оруулан NLP шинжилгээ эхлүүлэх. Нэг удаад олон мянган мөр хүлээн авна. & Шинжээч & Өндөр \\ \hline
+2 & F-02 & Урьдчилан боловсруулалт & Монгол/галиг бичлэг, emoji, тусгай тэмдэгт, стоп үгсийг автоматаар цэвэрлэж стандартчилах. & Систем & Өндөр \\ \hline
+3 & F-03 & Нэрлэсэн объект таних & Текстээс PERSON, ORG, LOC нэрлэсэн объектуудыг байрлал болон итгэлцлийн оноотойгоор буцаах. & Шинжээч & Өндөр \\ \hline
+4 & F-04 & Сэтгэл хөдлөлийн шинжилгээ & Текст бүрийг Positive, Negative, Neutral ангилалд хамааруулж тархалтын оноог буцаах. & Шинжээч & Өндөр \\ \hline
+5 & F-05 & Сэдэв загварчлал & BERTopic болон Predefined Classification аргаар нийтлэлүүдийг сэдэвт ангилж гол үгсийг гаргах. & Шинжээч & Өндөр \\ \hline
+6 & F-06 & Сүлжээний шинжилгээ & Entity-үүдийн co-occurrence сүлжээг тооцоолж Degree болон Betweenness Centrality-г хэмжих. & Шинжээч & Дунд \\ \hline
+7 & F-07 & Хяналтын самбар & Үр дүнг Pie chart, Treemap, Network graph, Timeline интерактив дүрслэлээр харуулах. & Шинжээч & Өндөр \\ \hline
+8 & F-08 & Тайлан үүсгэх & Шинжилгээний нэгтгэсэн тайланг JSON/PDF хэлбэрт гаргах. & Шинжээч & Дунд \\ \hline
+9 & F-09 & REST API endpoint & Гадаад систем болон Sumbee-ийн Processing Server-ээс HTTP дуудлагаар NLP үйлчилгээ авах. & Sumbee систем & Өндөр \\ \hline
+10 & F-10 & Мэдлэгийн сан удирдах & Админ стоп үгс, сэдвийн ангилал, шошго нэмэх, засах, устгах. Predefined topic embedding шинэчлэх. & Админ & Дунд \\ \hline
+\end{tabular}
+\caption{Системийн функциональ шаардлагууд}
+\label{tab:functional_req}
+\end{table}
+
+\subsection{Функциональ бус шаардлагууд}
+
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{|c|c|p{2.2cm}|p{5.5cm}|p{2.5cm}|}
+\hline
+\textbf{№} & \textbf{Код} & \textbf{Нэр} & \textbf{Тайлбар} & \textbf{Хэмжүүр} \\ \hline
+1 & NF-01 & Архитектур & Hexagonal Architecture загварт NLP Domain Core-г FastAPI, Next.js-ээс тусгаарлах. & Coupling = 0 \\ \hline
+2 & NF-02 & Гүйцэтгэл & GPU: 20--60 ms, CPU: 300--800 ms. 1000 өгүүлбэрийн batch 2--4 сек. & Latency $<$ 100 ms \\ \hline
+3 & NF-03 & REST API & CORS зөв тохируулагдсан, JSON хариу, OpenAPI doc автоматаар үүсэх. & HTTP 200 + JSON \\ \hline
+4 & NF-04 & Монгол хэл & Кирилл, галиг, ярианы хэллэг, emoji зөв боловсруулах preprocessing. & F1 $>$ 0.80 \\ \hline
+5 & NF-05 & Өргөтгөх боломж & Шинэ NLP модуль нэмэхэд одоогийн кодыг өөрчлөхгүйгээр Plug-in хэлбэрт нэмэх. & Open/Closed зарчим \\ \hline
+6 & NF-06 & Мэдлэгийн сан & Knowledge Base-ийг SQLite-д хадгалж migration, backup боломжтой байх. & SQLite 3.x \\ \hline
+7 & NF-07 & UI/UX & Glassmorphic dark-mode, responsive layout, 3 секунд дотор үр дүн харуулах. & PageSpeed $>$ 80 \\ \hline
+8 & NF-08 & Аюулгүй байдал & API key authentication, rate limiting, input validation, SQL injection хамгаалалт. & OWASP Top 10 \\ \hline
+\end{tabular}
+\caption{Системийн функциональ бус шаардлагууд}
+\label{tab:nonfunctional_req}
+\end{table}
+
+\subsection{Use Case диаграмм}
+
+Системийн хэрэглэгчийн хэрэглээний тохиолдлуудыг зураг~\ref{fig:usecase}-д үзүүлэв. Гурван актор байна: \textbf{Шинжээч} хэрэглэгч, системийн \textbf{Админ}, болон гадаад \textbf{Sumbee систем}.
+
+\begin{figure}[h!]
+\centering
+\resizebox{0.95\linewidth}{!}{%
+\begin{tikzpicture}[align=center,
+    actor/.style={rectangle, draw, fill=blue!10, rounded corners=3pt,
+        minimum width=2cm, minimum height=0.7cm, text centered, font=\small},
+    usecase/.style={ellipse, draw, fill=green!10, minimum width=3.4cm,
+        minimum height=0.75cm, text centered, font=\small},
+    sysbox/.style={rectangle, draw=black!40, dashed, rounded corners=6pt, inner sep=12pt},
+    conn/.style={thin, draw=black}
+]
+\node[sysbox, minimum width=9.5cm, minimum height=10cm] at (5.5,-4.5) {};
+\node[font=\small\bfseries] at (5.5, 0.5) {NLP Intelligence систем};
+
+\node[actor] (analyst) at (-0.5,-1.5) {Шинжээч};
+\node[actor] (admin)   at (-0.5,-7.5) {Админ};
+\node[actor] (sumbee)  at (11.5,-4.0) {Sumbee\\систем};
+
+\node[usecase] (uc1) at (3.5,-0.8) {Текст/CSV оруулах};
+\node[usecase] (uc2) at (3.5,-2.3) {NER шинжилгээ};
+\node[usecase] (uc3) at (3.5,-3.8) {Sentiment шинжилгээ};
+\node[usecase] (uc4) at (7.5,-0.8) {Сэдэв загварчлал};
+\node[usecase] (uc5) at (7.5,-2.3) {Сүлжээний шинжилгээ};
+\node[usecase] (uc6) at (7.5,-3.8) {Dashboard харах};
+\node[usecase] (uc7) at (5.5,-5.4) {Тайлан гаргах};
+\node[usecase] (uc8) at (3.5,-7.0) {Stop word удирдах};
+\node[usecase] (uc9) at (7.5,-7.0) {Сэдвийн ангилал};
+\node[usecase] (uc10) at (5.5,-8.5) {Шошго удирдах};
+\node[usecase] (uc11) at (8.5,-4.8) {REST API дуудах};
+
+\draw[conn] (analyst)--(uc1); \draw[conn] (analyst)--(uc2);
+\draw[conn] (analyst)--(uc3); \draw[conn] (analyst)--(uc4);
+\draw[conn] (analyst)--(uc5); \draw[conn] (analyst)--(uc6);
+\draw[conn] (analyst)--(uc7);
+\draw[conn] (admin)--(uc8);   \draw[conn] (admin)--(uc9);
+\draw[conn] (admin)--(uc10);
+\draw[conn] (sumbee)--(uc11);
+\draw[conn] (uc11)--(uc2);   \draw[conn] (uc11)--(uc3);
+\draw[conn] (uc11)--(uc4);
+\end{tikzpicture}}
+\caption{Системийн Use Case диаграмм}
+\label{fig:usecase}
+\end{figure}
+
+% ================================================================
+\section{Системийн гурван хэрэгжүүлэлтийн хувилбар}
+% ================================================================
+
+Hexagonal Architecture-ийн ачаар NLP Domain Core нь нэмэлт өөрчлөлтгүйгээр гурван хувилбарт адилхан ажилладаг.
+
+\subsection{Demo Web Application архитектур}
+
+Demo Web Application нь судалгааны үр дүнг харуулах зориулалттай бүрэн end-to-end систем бөгөөд Next.js frontend болон FastAPI backend-ийн нэгдмэл архитектуртай (зураг~\ref{fig:demo_arch}).
+
+\begin{figure}[h!]
+\centering
+\resizebox{0.82\linewidth}{!}{%
+\begin{tikzpicture}[
+    layer/.style={rectangle, draw, rounded corners=4pt,
+        minimum width=10cm, minimum height=1.1cm, text centered, font=\small\bfseries},
+    sub/.style={rectangle, draw, rounded corners=3pt, fill=white,
+        minimum width=2.4cm, minimum height=0.75cm, text centered, font=\footnotesize},
+    arrow/.style={->, >=stealth, thick}
+]
+\node[layer, fill=blue!15]   (fe)   at (0, 0)    {};
+\node[layer, fill=orange!15] (api)  at (0,-2.0)  {};
+\node[layer, fill=green!15]  (core) at (0,-4.0)  {};
+\node[layer, fill=purple!10] (kb)   at (0,-6.0)  {};
+
+\node[font=\small\bfseries] at (-3.5, 0)   {Next.js Frontend};
+\node[font=\small\bfseries] at (-3.5,-2.0) {FastAPI Backend};
+\node[font=\small\bfseries] at (-3.5,-4.0) {NLP Domain Core};
+\node[font=\small\bfseries] at (-3.5,-6.0) {Knowledge Layer};
+
+\node[sub] at (-1.2, 0)   {Dashboard UI};
+\node[sub] at (1.3,  0)   {Charts/Graphs};
+\node[sub] at (3.8,  0)   {Network View};
+\node[sub] at (-1.2,-2.0) {API Routers};
+\node[sub] at (1.3, -2.0) {Pydantic Schema};
+\node[sub] at (3.8, -2.0) {CORS / Auth};
+\node[sub] at (-2.2,-4.0) {Preprocessor};
+\node[sub] at (0.3, -4.0) {NER Engine};
+\node[sub] at (2.5, -4.0) {Sentiment};
+\node[sub] at (4.5, -4.0) {Topic Modeler};
+\node[sub] at (-1.5,-6.0) {Network Analyzer};
+\node[sub] at (1.5, -6.0) {KB Manager};
+\node[sub] at (4.0, -6.0) {SQLite DB};
+
+\draw[arrow] (0,-0.55)  -- node[right,font=\footnotesize]{REST/JSON} (0,-1.45);
+\draw[arrow] (0,-2.55)  -- node[right,font=\footnotesize]{Port call}  (0,-3.45);
+\draw[arrow] (0,-4.55)  -- node[right,font=\footnotesize]{SQL query} (0,-5.45);
+
+\node[font=\footnotesize,text=gray] at (5.7, 0)   {:3000};
+\node[font=\footnotesize,text=gray] at (5.7,-2.0) {:8000};
+\end{tikzpicture}}
+\caption{Demo Web Application-ийн давхаргат архитектур}
+\label{fig:demo_arch}
+\end{figure}
+
+\subsection{Public REST API архитектур}
+
+Public REST API хувилбар нь гадаад систем болон хөгжүүлэгчдэд NLP үйлчилгээ нийлүүлэх зориулалттай (зураг~\ref{fig:api_arch}).
+
+\begin{figure}[h!]
+\centering
+\resizebox{0.88\linewidth}{!}{%
+\begin{tikzpicture}[align=center,
+    client/.style={rectangle, draw, fill=gray!15, rounded corners=3pt,
+        minimum width=2.2cm, minimum height=0.8cm, text centered, font=\footnotesize},
+    ep/.style={rectangle, draw, fill=orange!15, rounded corners=3pt,
+        minimum width=3.6cm, minimum height=0.65cm, text centered, font=\footnotesize},
+    mod/.style={rectangle, draw, fill=green!15, rounded corners=3pt,
+        minimum width=2.4cm, minimum height=0.65cm, text centered, font=\footnotesize},
+    arrow/.style={->, >=stealth, thick},
+    dashbox/.style={draw, dashed, rounded corners=5pt, inner sep=8pt}
+]
+\node[client] (c1) at (0, 0)    {Sumbee\\Server};
+\node[client] (c2) at (0,-1.6)  {3rd Party App};
+\node[client] (c3) at (0,-3.2)  {Developer\\(curl/Postman)};
+
+\node[dashbox, minimum width=4.2cm, minimum height=5cm] (gwbox) at (4.8,-1.6) {};
+\node[font=\footnotesize\bfseries] at (4.8, 0.8) {FastAPI Gateway};
+\node[ep] (e1) at (4.8, 0.2)  {POST /analyze/ner};
+\node[ep] (e2) at (4.8,-0.8)  {POST /analyze/sentiment};
+\node[ep] (e3) at (4.8,-1.8)  {POST /analyze/topics};
+\node[ep] (e4) at (4.8,-2.8)  {POST /analyze/full};
+\node[ep] (e5) at (4.8,-3.8)  {GET /kb/categories};
+
+\node[dashbox, minimum width=3cm, minimum height=5cm] (nlpbox) at (9.5,-1.6) {};
+\node[font=\footnotesize\bfseries] at (9.5, 0.8) {NLP Core};
+\node[mod] (m1) at (9.5, 0.2)  {NER Engine};
+\node[mod] (m2) at (9.5,-0.8)  {Sentiment};
+\node[mod] (m3) at (9.5,-1.8)  {BERTopic};
+\node[mod] (m4) at (9.5,-2.8)  {Predefined};
+\node[mod] (m5) at (9.5,-3.8)  {KB Manager};
+
+\draw[arrow] (c1)--(e1); \draw[arrow] (c2)--(e3); \draw[arrow] (c3)--(e4);
+\draw[arrow] (e1)--(m1); \draw[arrow] (e2)--(m2); \draw[arrow] (e3)--(m3);
+\draw[arrow] (e4)--(m1); \draw[arrow] (e4.east) -- ++(0.3,0) |- (m2.west);
+\draw[arrow] (e5)--(m5);
+\end{tikzpicture}}
+\caption{Public REST API-ийн архитектур}
+\label{fig:api_arch}
+\end{figure}
+
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{|c|l|p{3.5cm}|p{4.5cm}|}
+\hline
+\textbf{Method} & \textbf{Endpoint} & \textbf{Input} & \textbf{Output} \\ \hline
+POST & \texttt{/analyze/ner} & \texttt{\{texts: [str]\}} & Entity жагсаалт, байрлал, ангилал \\ \hline
+POST & \texttt{/analyze/sentiment} & \texttt{\{texts: [str]\}} & Positive/Negative/Neutral оноо \\ \hline
+POST & \texttt{/analyze/topics} & \texttt{\{texts, method\}} & Сэдэв, keyword-ууд, хувь \\ \hline
+POST & \texttt{/analyze/full} & \texttt{\{texts: [str]\}} & NER + Sentiment + Topic + Network \\ \hline
+GET  & \texttt{/kb/categories} & --- & Сэдвийн ангиллын мод бүтэц \\ \hline
+\end{tabular}
+\caption{Public REST API-ийн үндсэн endpoint-ууд}
+\label{tab:api_endpoints}
+\end{table}
+
+\subsection{Sumbee.mn системтэй интеграцийн архитектур}
+
+Sumbee.mn интеграцийн хувилбарт NLP pipeline нь Sumbee-ийн Processing Server-т шинэ модуль болгон нэвтэрнэ (зураг~\ref{fig:sumbee_integration}). Одоогийн rule-based боловсруулалтын дараа NLP Pipeline модуль ажиллах ба үр дүнг боловсруулсан өгөгдлийн санд хадгална.
+
+\begin{figure}[h!]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[align=center,
+    sbox/.style={rectangle, draw, rounded corners=3pt,
+        minimum width=2.5cm, minimum height=0.9cm, text centered, font=\small},
+    nlp/.style={rectangle, draw=green!60!black, thick, fill=green!8,
+        rounded corners=3pt, minimum width=2.0cm, minimum height=0.75cm,
+        text centered, font=\footnotesize},
+    arrow/.style={->, >=stealth, thick},
+    dashbox/.style={draw=green!60!black, dashed, rounded corners=6pt,
+        inner sep=10pt, thick}
+]
+\node[sbox, fill=blue!10]   (craw) at (0,0)    {Crawler\\Servers};
+\node[sbox, fill=blue!10]   (raw)  at (3.2,0)  {Raw\\Storage};
+\node[sbox, fill=orange!10] (proc) at (6.5,0)  {Processing\\Server};
+\node[sbox, fill=cyan!10]   (pdb)  at (10.5,0) {Processed\\Database};
+\node[sbox, fill=gray!10]   (web)  at (13.5,0) {Web App};
+
+\node[dashbox, minimum width=7cm, minimum height=3.2cm] (nlpmodule) at (6.5,-3) {};
+\node[font=\small\bfseries, text=green!50!black] at (6.5,-1.3)
+    {Шинэ NLP Pipeline модуль};
+
+\node[nlp] (prep)  at (3.8,-2.5) {Mongolian\\Preprocessor};
+\node[nlp] (ner)   at (5.8,-2.5) {BERT NER};
+\node[nlp] (sent)  at (7.8,-2.5) {Sentiment};
+\node[nlp] (topic) at (5.0,-3.7) {BERTopic};
+\node[nlp] (net)   at (8.0,-3.7) {Network\\Analyzer};
+
+\draw[arrow] (craw)--(raw);
+\draw[arrow] (raw)--(proc);
+\draw[arrow] (proc)--(pdb);
+\draw[arrow] (pdb)--(web);
+
+\draw[arrow] (proc.south) -- ++(0,-0.4) -| (prep.north);
+\draw[arrow] (prep)--(ner);
+\draw[arrow] (ner)--(sent);
+\draw[arrow] (ner.south)  -- (topic.north);
+\draw[arrow] (sent.south) -- (net.north);
+\draw[arrow] (topic.east) -- (net.west);
+\draw[arrow] (net.north east) -- ++(0.5,0.5) |- (pdb.south);
+
+\node[font=\footnotesize,text=green!50!black] at (6.5,-4.6)
+    {NLP шинжилгээний үр дүн → Processed DB};
+\end{tikzpicture}}
+\caption{Sumbee.mn системтэй интеграцийн архитектур}
+\label{fig:sumbee_integration}
+\end{figure}
+
+% ================================================================
+\section{Системийн ерөнхий Hexagonal архитектур}
+% ================================================================
+
+\textbf{Hexagonal Architecture} (Ports \& Adapters) загварын үндсэн санаа нь: \textit{``Application логик нь гадны технологи болон framework-ээс бүрэн тусгаарлагдсан байх''}. Манай системд гурван давхарга байна:
+
+\begin{itemize}
+    \item \textbf{Domain Core:} NER, Sentiment, Topic Modeling, Network Analysis-ийн бизнес логик. FastAPI, SQLite, Next.js-ийн талаар мэддэггүй.
+    \item \textbf{Ports:} Domain Core-д орох/гарах хийсвэр интерфейс (\texttt{ITextAnalyzer}, \texttt{ITopicModeler}, \texttt{IResultStore}).
+    \item \textbf{Adapters:} Портуудыг бодит технологиор хэрэгжүүлнэ: FastAPI Router Adapter, SQLite Adapter, HuggingFace Model Adapter.
+\end{itemize}
+
+\begin{figure}[h!]
+\centering
+\resizebox{0.80\linewidth}{!}{%
+\begin{tikzpicture}[align=center,
+    core/.style={rectangle, draw=green!60!black, very thick, fill=green!8,
+        rounded corners=6pt, minimum width=5.5cm, minimum height=4.0cm},
+    port/.style={rectangle, draw=blue!60, thick, fill=blue!8,
+        rounded corners=3pt, minimum width=1.8cm, minimum height=0.7cm,
+        text centered, font=\footnotesize},
+    adap/.style={rectangle, draw=orange!70, thick, fill=orange!10,
+        rounded corners=3pt, minimum width=2.2cm, minimum height=0.75cm,
+        text centered, font=\footnotesize},
+    darrow/.style={<->, >=stealth, thick, draw=gray!60}
+]
+\node[core] (core) at (0,0) {};
+\node[font=\small\bfseries, text=green!50!black] at (0, 1.4) {NLP Domain Core};
+\node[font=\footnotesize] at (0, 0.7) {NER Engine};
+\node[font=\footnotesize] at (0, 0.2) {Sentiment Analyzer};
+\node[font=\footnotesize] at (0,-0.3) {Topic Modeler};
+\node[font=\footnotesize] at (0,-0.8) {Network Analyzer};
+\node[font=\footnotesize] at (0,-1.3) {KB Manager};
+
+\node[port] (ip1) at (-4.5, 1.0) {Input Port\\ITextAnalyzer};
+\node[port] (ip2) at (-4.5,-0.3) {Input Port\\ITopicModeler};
+\node[port] (ip3) at (-4.5,-1.6) {Input Port\\IKBManager};
+\node[port] (op1) at ( 4.5, 0.7) {Output Port\\IResultStore};
+\node[port] (op2) at ( 4.5,-0.8) {Output Port\\IModelLoader};
+
+\node[adap] (a1) at (-7.8, 1.0) {FastAPI\\Router};
+\node[adap] (a2) at (-7.8,-0.3) {CSV File\\Adapter};
+\node[adap] (a3) at (-7.8,-1.6) {Admin REST\\Adapter};
+\node[adap] (b1) at ( 7.8, 0.7) {SQLite\\Adapter};
+\node[adap] (b2) at ( 7.8,-0.8) {HuggingFace\\Adapter};
+
+\draw[darrow] (a1)--(ip1); \draw[darrow] (a2)--(ip2); \draw[darrow] (a3)--(ip3);
+\draw[darrow] (ip1)--(-2.75, 1.0);
+\draw[darrow] (ip2)--(-2.75,-0.3);
+\draw[darrow] (ip3)--(-2.75,-1.6);
+\draw[darrow] (2.75, 0.7)--(op1);
+\draw[darrow] (2.75,-0.8)--(op2);
+\draw[darrow] (op1)--(b1); \draw[darrow] (op2)--(b2);
+
+\node[font=\footnotesize, text=blue!60]   at (-4.5, 2.0) {Input Ports};
+\node[font=\footnotesize, text=blue!60]   at ( 4.5, 2.0) {Output Ports};
+\node[font=\footnotesize, text=orange!70] at (-7.8, 2.0) {Adapters (In)};
+\node[font=\footnotesize, text=orange!70] at ( 7.8, 2.0) {Adapters (Out)};
+\end{tikzpicture}}
+\caption{Hexagonal Architecture (Ports \& Adapters) зохиомж}
+\label{fig:hexagonal}
+\end{figure}
+
+% ================================================================
+\section{NLP Pipeline-ийн мэдээллийн урсгалын диаграмм}
+% ================================================================
+
+Системийн мэдээллийн урсгал нь зураг~\ref{fig:nlp_pipeline}-д үзүүлсэн дарааллаар явагддаг. Input текст preprocessing-оор дамжин NER болон Sentiment Analysis зэрэгцэн ажиллаж, үр дүн нь Topic Modeling болон Network Analysis-д ашиглагдана.
+
+\begin{figure}[h!]
+\centering
+\resizebox{0.60\linewidth}{!}{%
+\begin{tikzpicture}[align=center,
+    io/.style={trapezium, trapezium left angle=70, trapezium right angle=110,
+        draw, fill=gray!15, minimum width=3cm, minimum height=0.75cm,
+        text centered, font=\footnotesize},
+    proc/.style={rectangle, draw, rounded corners=3pt, fill=blue!10,
+        minimum width=3.2cm, minimum height=0.85cm, text centered, font=\footnotesize},
+    dec/.style={diamond, draw, fill=yellow!20, minimum width=1.8cm,
+        minimum height=0.9cm, text centered, font=\footnotesize, aspect=2.5},
+    res/.style={rectangle, draw, rounded corners=3pt, fill=green!12,
+        minimum width=3.2cm, minimum height=0.75cm, text centered, font=\footnotesize},
+    arrow/.style={->, >=stealth, thick},
+    node distance=0.55cm
+]
+\node[io]   (inp)   at (0, 0)    {CSV / Текст оруулах};
+\node[proc] (prep)  at (0,-1.6)  {Preprocessing};
+\node[dec]  (val)   at (0,-3.2)  {Хүчинтэй?};
+\node[proc] (ner)   at (-2.5,-5) {NER Engine\\(BERT)};
+\node[proc] (sent)  at ( 2.5,-5) {Sentiment\\(XLM-R)};
+\node[proc] (topic) at (0,-6.8)  {Topic Modeling\\(BERTopic + Predefined)};
+\node[proc] (net)   at (0,-8.4)  {Network Analysis};
+\node[proc] (agg)   at (0,-10.0) {Үр дүн нэгтгэх};
+\node[res]  (cache) at (3.5,-10.0) {Cache (SQLite)};
+\node[io]   (out)   at (0,-11.5) {Dashboard / API хариу};
+
+\draw[arrow] (inp)  -- (prep);
+\draw[arrow] (prep) -- (val);
+\draw[arrow] (val)  -- node[right, font=\footnotesize]{Тийм} (0,-4.1);
+\draw[arrow] (val.east) -- ++(1.5,0) node[right, font=\footnotesize]{Үгүй: алдаа};
+\draw[arrow] (0,-4.1) -| (ner.north);
+\draw[arrow] (0,-4.1) -| (sent.north);
+\draw[arrow] (ner.south)  |- (topic.west);
+\draw[arrow] (sent.south) |- (topic.east);
+\draw[arrow] (topic) -- (net);
+\draw[arrow] (net)   -- (agg);
+\draw[arrow] (agg)   -- (cache);
+\draw[arrow] (agg)   -- (out);
+\end{tikzpicture}}
+\caption{NLP Pipeline-ийн мэдээллийн урсгалын диаграмм}
+\label{fig:nlp_pipeline}
+\end{figure}
+
+% ================================================================
+\section{Дарааллын диаграмм}
+% ================================================================
+
+Зураг~\ref{fig:sequence}-д ``POST /analyze/full'' API хүсэлт илгээхэд системийн дотоод дарааллыг үзүүллээ.
+
+\begin{figure}[h!]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[
+    lhdr/.style={rectangle, draw, fill=gray!10, minimum width=2.2cm,
+        minimum height=0.6cm, text centered, font=\footnotesize},
+    msg/.style={->, >=stealth, thick},
+    ret/.style={->, >=stealth, thick, dashed},
+    lbl/.style={font=\footnotesize, midway, above}
+]
+\node[lhdr] at (0,0)    {Хэрэглэгч};
+\node[lhdr] at (3.5,0)  {Next.js};
+\node[lhdr] at (7,0)    {FastAPI};
+\node[lhdr] at (10.5,0) {NLP Core};
+\node[lhdr] at (14,0)   {SQLite};
+
+\foreach \x in {0,3.5,7,10.5,14}
+    \draw[dashed, gray] (\x,-0.3) -- (\x,-10.5);
+
+\draw[msg] (0,-1.0)  -- (3.5,-1.0)  node[lbl]{1. CSV оруулах};
+\draw[msg] (3.5,-1.8)-- (7,-1.8)    node[lbl]{2. POST /analyze/full};
+\draw[msg] (7,-2.6)  -- (10.5,-2.6) node[lbl]{3. preprocess(texts)};
+\draw[ret] (10.5,-3.2)-- (7,-3.2)   node[lbl]{4. cleaned\_texts};
+\draw[msg] (7,-4.0)  -- (10.5,-4.0) node[lbl]{5. ner\_extract()};
+\draw[msg] (7,-4.8)  -- (10.5,-4.8) node[lbl]{6. sentiment\_predict()};
+\draw[msg] (7,-5.6)  -- (10.5,-5.6) node[lbl]{7. topic\_model()};
+\draw[msg] (7,-6.4)  -- (10.5,-6.4) node[lbl]{8. network\_analyze()};
+\draw[msg] (10.5,-7.2)-- (14,-7.2)  node[lbl]{9. save\_cache()};
+\draw[ret] (14,-7.9) -- (10.5,-7.9) node[lbl]{10. cache\_id};
+\draw[ret] (10.5,-8.7)-- (7,-8.7)   node[lbl]{11. result JSON};
+\draw[ret] (7,-9.5)  -- (3.5,-9.5)  node[lbl]{12. HTTP 200 JSON};
+\draw[ret] (3.5,-10.2)-- (0,-10.2)  node[lbl]{13. Dashboard дүрслэх};
+\end{tikzpicture}}
+\caption{``POST /analyze/full'' хүсэлтийн дарааллын диаграмм}
+\label{fig:sequence}
+\end{figure}
+
+% ================================================================
+\section{Өгөгдлийн сангийн зохиомж}
+% ================================================================
+
+Системийн мэдлэгийн санг \textbf{SQLite} өгөгдлийн санд (\texttt{knowledge.db}) хадгална. SQLite-ийг сонгосон шалтгаан: суулгалт шаардлагагүй, нэг файл, хялбар backup, 10K+ бичлэгт хангалттай гүйцэтгэлтэй.
+
+\begin{figure}[h!]
+\centering
+\resizebox{0.82\linewidth}{!}{%
+\begin{tikzpicture}[
+    tbl/.style={rectangle, draw, fill=blue!8, rounded corners=4pt,
+        minimum width=2.8cm, minimum height=0.9cm,
+        text centered, font=\small\bfseries},
+    rel/.style={->, >=stealth, thick, draw=gray!70},
+    node distance=1.2cm
+]
+\node[tbl] (sw)    at (0, 0)    {stopwords};
+\node[tbl] (cat)   at (5.5, 0)  {categories};
+\node[tbl] (lbl)   at (5.5,-3)  {labels};
+\node[tbl] (hist)  at (0,-3)    {analysis\_history};
+\node[tbl] (seeds) at (11, 0)   {topic\_seeds};
+
+\draw[rel] (cat.south) -- node[right,font=\footnotesize]{1:N} (lbl.north);
+\draw[rel] (cat.east)  -- node[above,font=\footnotesize]{1:N} (seeds.west);
+\draw[rel] (cat.north west) to[bend left=50]
+    node[above,font=\footnotesize]{self-ref} (cat.north east);
+
+\node[font=\footnotesize, text=gray, align=left] at (0, -0.7)
+    {id, word, language};
+\node[font=\footnotesize, text=gray, align=left] at (5.5, -0.7)
+    {id, name, parent\_id, embedding};
+\node[font=\footnotesize, text=gray, align=left] at (5.5, -3.7)
+    {id, name, color, category\_id};
+\node[font=\footnotesize, text=gray, align=left] at (0, -3.7)
+    {id, input\_hash, result\_json};
+\node[font=\footnotesize, text=gray, align=left] at (11, -0.7)
+    {id, topic\_name, category\_id};
+\end{tikzpicture}}
+\caption{Knowledge Base өгөгдлийн сангийн ER диаграмм}
+\label{fig:er_diagram}
+\end{figure}
+
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{|l|p{3.5cm}|p{5.5cm}|}
+\hline
+\textbf{Хүснэгт} & \textbf{Гол талбарууд} & \textbf{Зориулалт} \\ \hline
+\texttt{stopwords} & id, word, language & Монгол/Англи зогсох үгс. Preprocessing-д ашиглагдана. \\ \hline
+\texttt{categories} & id, name, parent\_id, embedding & Сэдвийн ангиллын мод бүтэц. Predefined topic-ийн embedding. \\ \hline
+\texttt{labels} & id, name, color, category\_id & NER болон Topic шошгоны дүрслэлийн тохиргоо. \\ \hline
+\texttt{analysis\_history} & id, input\_hash, result\_json & Анализын кэш. Ижил input дахин ирвэл кэшийг буцаана. \\ \hline
+\texttt{topic\_seeds} & id, topic\_name, embedding & Predefined topic-ийн жишиг өгүүлбэр болон embedding. \\ \hline
+\end{tabular}
+\caption{Knowledge Base хүснэгтүүдийн бүтэц ба зориулалт}
+\label{tab:db_tables}
+\end{table}
+
+% ================================================================
+\section{NLP Загваруудын сонголт ба харьцуулалт}
+% ================================================================
+
+\subsection{NER загварын харьцуулалт}
+
+NER даалгаварт зориулж гурван нэр дэвшигч загварыг харьцуулан судлав.
+
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{|p{3.8cm}|c|c|c|c|c|c|}
+\hline
+\textbf{Загварын нэр} & \textbf{Хэл} & \textbf{Ангилал} & \textbf{Монгол} & \textbf{GPU (ms)} & \textbf{CPU (ms)} & \textbf{Сонгосон} \\ \hline
+\texttt{Davlan/bert-multilingual\--ner-hrl} & 10 & PER, ORG, LOC & Тийм & 20--60 & 300--600 & \checkmark \\ \hline
+\texttt{spaCy xx\_ent\_wiki\_sm} & Олон & PER, ORG, LOC & Үгүй & 5 & 10 & $\times$ \\ \hline
+\texttt{flair/ner-multi} & Олон & PER,ORG,LOC,MISC & Хязгаарлагдмал & 100 & 500 & $\times$ \\ \hline
+\end{tabular}
+\caption{NER загваруудын харьцуулалт}
+\label{tab:ner_comparison}
+\end{table}
+
+\texttt{Davlan/bert-base-multilingual-cased-ner-hrl} загварыг сонгосон үндэслэл: агглютинатив бүтэцтэй хэлүүдийн (Turkish, Finnish гэх мэт) өгөгдөл дээр pretrain хийгдсэн multilingual embedding нь Монгол нэр таних чадвартай. spaCy xx загвар Монгол хэлийг дэмжихгүй тул хасагдсан.
+
+\subsection{Topic Modeling загварын харьцуулалт}
+
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{|p{3.5cm}|c|c|c|}
+\hline
+\textbf{Хэмжүүр} & \textbf{LDA} & \textbf{BERTopic} & \textbf{Predefined Class.} \\ \hline
+Сургалтын датасет & Шаардлагатай & Шаардлагагүй & Шаардлагагүй \\ \hline
+Topic тоо тогтоох & Гараар ($K$) & Автомат & Тогтсон \\ \hline
+Монгол текст & Дунд & Сайн & Сайн \\ \hline
+Inference хурд & Хурдан & Дунд (200ms) & Маш хурдан (5ms) \\ \hline
+Шинэ сэдэв илрүүлэх & Тийм & Тийм & Үгүй \\ \hline
+Тайлбарлагдах байдал & Өндөр & Дунд & Өндөр \\ \hline
+Сонгосон & $\times$ & \checkmark & \checkmark \\ \hline
+\end{tabular}
+\caption{Topic Modeling аргуудын харьцуулалт}
+\label{tab:topic_comparison}
+\end{table}
+
+BERTopic болон Predefined Classification-ийг хоёуланг нь сонгосон шалтгаан нь: BERTopic нь урьдчилан мэдэгдэхгүй шинэ сэдэв илрүүлэхэд давуу, харин Predefined Classification нь тодорхой бизнесийн ангиллыг маш хурдан (1--5 ms) таньдаг. Хоёр аргыг хослуулан ашиглах нь хамгийн оновчтой үр дүн өгдөг.
+
+% ================================================================
+\section{Дүгнэлт}
+% ================================================================
+
+Системийн шинжилгээ ба зохиомжийн бүлгийн дүгнэлтэнд: нийт 10 функциональ болон 8 функциональ бус шаардлагыг тодорхойлж, Use Case диаграммаар гурван актор, 10 хэрэглээний тохиолдлыг дүрсэллээ. Hexagonal Architecture нь NLP Domain Core-г технологиос тусгаарлаж, Demo Web, Public API, Sumbee интеграци гэсэн гурван хувилбарыг нэг кодоос хэрэгжүүлэх боломжийг бүрдүүлж байна. Өгөгдлийн сангийн 5 хүснэгтийн зохиомж болон NLP загваруудын харьцуулалтаас \texttt{Davlan/bert-multilingual-ner-hrl} болон BERTopic+Predefined хосолсон арга нь хамгийн тохиромжтой шийдэл болохыг тогтоов. Дараагийн бүлэгт эдгээр зохиомжийн хэрэгжүүлэлт болон туршилтын үр дүнг танилцуулна.

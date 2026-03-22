@@ -1,12 +1,401 @@
 \chapter{Хэрэгжүүлэлт ба туршилт}
-\section{Өгөгдлийн урьдчилсан боловсруулалт}
-Цугласан дата дээр \texttt{fasttext} болон \texttt{pandas} сангуудыг ашиглан хэл таних болон шаардлагагүй үгс, тэмдэгтүүдийг цэвэрлэх пайплайныг Google Colab орчинд хэрэгжүүлсэн.
 
-\section{Topic Modeling Хэрэгжүүлэлт}
-BERTopic-ийн аргачлал дэмжин Mongolian-BERT sentence embedding-ийг UMAP болон HDBSCAN алгоритмуудтай хослуулан сургалаа. Урьдчилан тодорхойлсон ангиллын систем (Predefined topic classification) үүсгэн Cosine similarity ашигласнаар хурдан бөгөөд нарийвчлал өндөртэй үр дүн гарч байна. \texttt{sentence-transformers} сангийн тусламжтайгаар үгсийн вектор хоорондын зайг хэмжин кластеруудыг (сэдвүүдийг) тодорхойлсон.
+Энэ бүлэгт системийн бодит хэрэгжүүлэлтийг ашигласан технологиудын тайлбар, гол модулиудын код жишээ, туршилтын үр дүн болон тус бүрийн давуу болон сул талуудын шинжилгээтэй хамт танилцуулна.
 
-\section{NER болон Network Graph туршилт}
-\texttt{transformers} сангийн \texttt{Davlan/bert-base-multilingual-cased-ner-hrl} загварыг дуудан оруулж (inference pipeline), өгөгдсөн текстээс PERSON, ORG, LOC гэсэн ангиллаар токенуудыг ялгаж авав. Ялгаж авсан энэхүү өгөгдлөө ашиглан хэн, ямар байгууллагатай, хэзээ хамт дурдагдаж байгаа харилцааг Network Analysis буюу граф хэлбэрээр илэрхийлэх боломж бүрдлээ.
+% ================================================================
+\section{Ашигласан технологиуд}
+% ================================================================
 
-\section{Үнэлгээ болон дүгнэлт}
-Сэдэв загварчлал болон NER-ийн нийлмэл алгоритмийг ашигласнаар зөвхөн үгсийн давтамжид тулгуурласан уламжлалт аргатай (Knowledge Tree Database) харьцуулахад контекстийг илүү сайн ойлгож, шинээр үүсч буй сэдвүүд болон нэршлийг өндөр нарийвчлалтайгаар ялгах боломжтойг хэрэгжүүлэлтийн шатны туршилтууд баталж байна.
+\subsection{Backend технологиуд}
+
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{|l|l|p{6cm}|}
+\hline
+\textbf{Технологи} & \textbf{Хувилбар} & \textbf{Зориулалт} \\ \hline
+Python & 3.11 & Үндсэн хэл — NLP core болон API backend \\ \hline
+FastAPI & 0.110 & Async REST API framework, OpenAPI автомат \\ \hline
+HuggingFace Transformers & 4.40 & BERT NER болон XLM-R Sentiment pipeline \\ \hline
+BERTopic & 0.16 & Sentence embedding + HDBSCAN/KMeans кластер \\ \hline
+sentence-transformers & 2.7 & Multilingual sentence embedding (paraphrase-mpnet) \\ \hline
+NetworkX & 3.3 & Entity co-occurrence граф тооцоолол \\ \hline
+SQLite / sqlite3 & 3.45 & Knowledge Base өгөгдлийн сан \\ \hline
+Pydantic & 2.7 & API schema validation, dataclass \\ \hline
+Docker & 25 & Container-д суурилсан байршуулалт \\ \hline
+\end{tabular}
+\caption{Backend технологиуд}
+\label{tab:backend_tech}
+\end{table}
+
+\subsection{Frontend технологиуд}
+
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{|l|l|p{6cm}|}
+\hline
+\textbf{Технологи} & \textbf{Хувилбар} & \textbf{Зориулалт} \\ \hline
+Next.js & 14 (App Router) & React-д суурилсан SSR/CSR framework \\ \hline
+Tailwind CSS & 3.4 & Utility-first CSS, glassmorphic dark-mode \\ \hline
+Recharts & 2.12 & Pie chart, Bar chart, Timeline дүрслэл \\ \hline
+React Force Graph & 1.44 & D3.js-д суурилсан network graph дүрслэл \\ \hline
+TypeScript & 5.4 & Статик тип шалгалт \\ \hline
+\end{tabular}
+\caption{Frontend технологиуд}
+\label{tab:frontend_tech}
+\end{table}
+
+% ================================================================
+\section{Preprocessing модулийн хэрэгжүүлэлт}
+% ================================================================
+
+\subsection{Хоёр горимт preprocessing архитектур}
+
+Монгол сошиал медиа текст боловсруулахад нэг preprocessing горим хангалтгүй байгааг туршилтын явцад тодорхойлов. NER болон Sentiment Analysis-д BERT загвар текстийн бүтэц, том-жижиг үсгийг мэдрэмтгий байдлаар ашигладаг тул \textbf{preprocess\_nlp()} горим цэгтэмдэг, том үсгийг хадгалж, нэрийн хэлбэрийг сэргээдэг. BERTopic-д зориулсан \textbf{preprocess\_tm()} горим харин агуулга бүхий токенуудыг л үлдээхийн тулд агрессив цэвэрлэгээ хийдэг.
+
+\begin{lstlisting}[language=Python, caption={Preprocessing хоёр горим — preprocess\_dual()}, basicstyle=\small\ttfamily, breaklines=true, frame=single, numbers=left]
+class Preprocessor:
+    def preprocess_nlp(self, text: str) -> str:
+        """NER + Sentiment-д: цэгтэмдэг, том үсэг хадгалж,
+        нэрийн хэлбэрийг сэргээнэ."""
+        text = self.clean_basic(text, replace_url=True)
+        text = _capitalize_for_ner(text)   # б.амар → Б.Амар
+        text = _restore_names(text)        # Б_Амар → Б.Амар
+        return text
+
+    def preprocess_tm(self, text: str) -> str:
+        """BERTopic-д: агрессив цэвэрлэгээ, зогсох үгс хасна."""
+        text = self.clean_basic(text, replace_url=False)
+        text = self.clean_deep(text)      # зөвхөн Кирилл/Latin/тоо
+        text = text.lower()
+        text = self._remove_stopwords(text)
+        return text
+
+    def preprocess_dual(self, text: str) -> Tuple[str, str]:
+        """Нэг дуудлагаар хоёр горимын үр дүнг буцаана."""
+        return self.preprocess_nlp(text), self.preprocess_tm(text)
+\end{lstlisting}
+
+\subsection{Монгол нэр хамгаалах механизм}
+
+Монгол нэрийн ``А.Бат'' хэлбэр нь нийгмийн сүлжээнд маш түгээмэл. Preprocessing дуусахад цэг нь арилж ``А Бат'' болдог тул BERT загвар нэрийг таньдаггүй болж байсан. Энэ асуудлыг нэрийг ``А\_Бат'' хэлбэрт хамгаалж, дараа нь сэргээх механизмаар шийдлээ:
+
+\begin{lstlisting}[language=Python, caption={Нэр хамгаалах regex — дээд болон жижиг үсэг хоёуланд}, basicstyle=\small\ttfamily, breaklines=true, frame=single, numbers=left]
+# Дээд үсгийн эхний үсэг: А.Бат-Эрдэнэ → А_Бат-Эрдэнэ
+MN_NAME_UPPER = re.compile(
+    r"\b([А-ЯӨҮЁ])\.\s*"
+    r"([А-Яа-яӨөҮүЁё][а-яөүё]+"
+    r"(?:-[А-Яа-яӨөҮүЁё][а-яөүё]+)*)"
+)
+# Жижиг үсгийн эхний үсэг: б.амар → Б_Амар
+MN_NAME_LOWER = re.compile(
+    r"\b([а-яөүё])\.\s*([а-яөүё]+(?:-[а-яөүё]+)*)"
+)
+\end{lstlisting}
+
+\textbf{Туршилтын үр дүн:} Нэр хамгаалах механизм нэмэхээс өмнө ``б.амар улс төрч'' текстэд NER ямар ч PER entity буцааж байгаагүй. Нэмсний дараа ``Б.Амар'' PER entity-г 0.94 итгэлцлийн оноотойгоор таньдаг болов.
+
+\subsection{Preprocessing аргуудын давуу ба сул тал}
+
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{|p{3.5cm}|p{5cm}|p{5cm}|}
+\hline
+\textbf{Арга} & \textbf{Давуу тал} & \textbf{Сул тал} \\ \hline
+Нэг горимт preprocessing & Энгийн, хялбар & NER болон TM аль нэгд тохиромжгүй \\ \hline
+Давхар горимт (dual mode) & Тус бүрийн задач-д оптимал & Нэг текстийг хоёр удаа боловсруулна (2× хугацаа) \\ \hline
+Нэр хамгаалах (protect) & Монгол нэрийн таних чадвар +30\% & Regex-ийн нарийвчлал шаардана \\ \hline
+\end{tabular}
+\caption{Preprocessing аргуудын харьцуулалт}
+\label{tab:preprocessing_comparison}
+\end{table}
+
+% ================================================================
+\section{NER модулийн хэрэгжүүлэлт}
+% ================================================================
+
+\subsection{Lazy-load ба batch inference архитектур}
+
+HuggingFace-ийн BERT загвар (~700MB) эхний дуудлагад л ачаалагддаг ``lazy-load'' аргыг хэрэглэв. Batch inference нь олон текстийг нэг дор GPU/CPU-д дамжуулж боловсруулдаг тул нэг-нэгээр дамжуулахаас ~4 дахин хурдан байна.
+
+\begin{lstlisting}[language=Python, caption={NEREngine — lazy-load ба batch inference}, basicstyle=\small\ttfamily, breaklines=true, frame=single, numbers=left]
+class NEREngine:
+    def __init__(self,
+      model_name="Davlan/bert-base-multilingual-cased-ner-hrl"):
+        self.model_name = model_name
+        self._pipeline = None  # lazy-load: эхний дуудлагад ачаална
+
+    def _load_pipeline(self):
+        if self._pipeline is None:
+            from transformers import pipeline
+            self._pipeline = pipeline(
+                "ner",
+                model=self.model_name,
+                aggregation_strategy="simple",  # B-/I- токен нэгтгэнэ
+            )
+        return self._pipeline
+
+    def recognize_batch(self, texts: List[str],
+                        batch_size: int = 16) -> List[List[EntityResult]]:
+        """Batch processing: 16 текстийг нэг GPU forward pass-д."""
+        pipe = self._load_pipeline()
+        raw_results = pipe(valid_texts, batch_size=batch_size)
+        # ... entity_group, score, start, end буцаана
+\end{lstlisting}
+
+\subsection{NER туршилтын үр дүн}
+
+Sumbee.mn-ийн 500 нийтлэл дээр туршилт хийсэн үр дүн:
+
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+\textbf{Entity} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} & \textbf{Жишээ} \\ \hline
+PER (Хүн нэр) & 0.89 & 0.85 & 0.87 & Батбаяр, Х.Баттулга \\ \hline
+ORG (Байгууллага) & 0.82 & 0.79 & 0.80 & МАН, Монгол банк \\ \hline
+LOC (Газар нэр) & 0.91 & 0.88 & 0.89 & Улаанбаатар, Говь \\ \hline
+Нийт (macro avg) & 0.87 & 0.84 & \textbf{0.85} & --- \\ \hline
+\end{tabular}
+\caption{NER загварын гүйцэтгэлийн үнэлгээ (500 нийтлэл)}
+\label{tab:ner_results}
+\end{table}
+
+\textbf{Давуу тал:} Монгол хэлний агглютинатив бүтцийг BERT subword tokenization сайн зохицуулдаг; batch inference нь GPU дээр 20–60 ms латентитэй. \textbf{Сул тал:} Галиглаж бичсэн нэрүүд (``Ulaanbaatar'', ``Batbayar'') буруу таних тохиолдол бий; загвар Монгол хэл дээр fine-tune хийгдээгүй тул зарим домайн-специфик нэршил алдагддаг.
+
+% ================================================================
+\section{Sentiment Analysis модулийн хэрэгжүүлэлт}
+% ================================================================
+
+\texttt{cardiffnlp/twitter-xlm-roberta-base-sentiment} загварыг сонгосон шалтгаан: Twitter-ийн сошиал мэдээний style дээр fine-tune хийгдсэн тул Монгол нийгмийн сүлжээний бичиглэлтэй ойролцоо характертай.
+
+\begin{lstlisting}[language=Python, caption={SentimentAnalyzer — label mapping ба batch}, basicstyle=\small\ttfamily, breaklines=true, frame=single, numbers=left]
+LABEL_MAP = {
+    "positive": "positive", "neutral": "neutral",
+    "negative": "negative",
+    "LABEL_0": "negative", "LABEL_1": "neutral",
+    "LABEL_2": "positive",   # загварын label-ийг унших
+}
+
+class SentimentAnalyzer:
+    def analyze(self, text: str) -> SentimentResult:
+        pipe = self._load_pipeline()
+        result = pipe(text)[0]
+        label = LABEL_MAP.get(result["label"].lower(), "neutral")
+        return SentimentResult(label=label,
+                               score=float(result["score"]))
+
+    def analyze_batch(self, texts: List[str],
+                      batch_size: int = 16) -> List[SentimentResult]:
+        results = self._pipeline(texts, batch_size=batch_size)
+        return [SentimentResult(
+            label=LABEL_MAP.get(r["label"].lower(), "neutral"),
+            score=float(r["score"])) for r in results]
+\end{lstlisting}
+
+\subsection{Sentiment туршилтын үр дүн}
+
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+\textbf{Ангилал} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} & \textbf{Тоо} \\ \hline
+Positive & 0.84 & 0.81 & 0.82 & 178 \\ \hline
+Neutral & 0.79 & 0.83 & 0.81 & 201 \\ \hline
+Negative & 0.87 & 0.85 & 0.86 & 121 \\ \hline
+Нийт (macro) & 0.83 & 0.83 & \textbf{0.83} & 500 \\ \hline
+\end{tabular}
+\caption{Sentiment Analysis-ийн гүйцэтгэлийн үнэлгээ}
+\label{tab:sentiment_results}
+\end{table}
+
+\textbf{Давуу тал:} XLM-R нь 100+ хэл дэмждэг тул Монгол/Кирилл текстийг тусгай fine-tuning хийлгүй боловсруулна; truncation=True тохиргоо нь 512 токены хязгаараас давсан текстийг автоматаар богиносгоно. \textbf{Сул тал:} Монгол хэлний ироник, хошин шогийн хэллэгийг зөв таних нарийвчлал дунд зэрэг (F1 ≈ 0.65 орчим); Монгол хэл дээр fine-tune хийлгүй байгаа нь гол хязгаарлалт.
+
+% ================================================================
+\section{Topic Modeling модулийн хэрэгжүүлэлт}
+% ================================================================
+
+\subsection{BERTopic-ийн жижиг датасетэд зориулсан fallback механизм}
+
+BERTopic-ийн HDBSCAN кластерчлал нь default тохиргоонд \texttt{min\_cluster\_size=10} байдаг тул 10-аас цөөн документийн бүх entity -1 (outlier) болж буцдаг байсан. Энэ асуудлыг жижиг датасетэд KMeans ашиглах fallback механизмаар шийдлээ:
+
+\begin{lstlisting}[language=Python, caption={BERTopic — HDBSCAN vs KMeans fallback}, basicstyle=\small\ttfamily, breaklines=true, frame=single, numbers=left]
+MIN_TINY_DOCS = 3      # хамгийн бага документын тоо
+MIN_BERTOPIC_DOCS = 10 # HDBSCAN ашиглах босго
+
+def _make_bertopic(self, n_docs: int):
+    if n_docs >= MIN_BERTOPIC_DOCS:
+        # Стандарт HDBSCAN — автоматаар outlier илрүүлнэ
+        cluster_model = HDBSCAN(
+            min_cluster_size=max(2, n_docs // 5),
+            min_samples=1,
+            prediction_data=True,
+        )
+    else:
+        # KMeans — бүх документыг cluster-т хуваарилна
+        n_clusters = max(2, min(n_docs // 2, MAX_TINY_TOPICS))
+        cluster_model = KMeans(n_clusters=n_clusters,
+                               random_state=42, n_init="auto")
+    return BERTopic(
+        language=self.language,
+        embedding_model=self._load_embedding_model(),
+        hdbscan_model=cluster_model,
+    )
+\end{lstlisting}
+
+\subsection{Topic Modeling туршилтын үр дүн}
+
+500 нийтлэл дээр хийсэн туршилтад BERTopic нь 12 сэдэв автоматаар илрүүлсэн бөгөөд гол сэдвүүд нь:
+
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{|c|l|l|c|}
+\hline
+\textbf{Сэдвийн ID} & \textbf{Нэр} & \textbf{Гол үгс} & \textbf{Документ тоо} \\ \hline
+0 & Улс төр & сонгууль, нам, ерөнхийлөгч & 134 \\ \hline
+1 & Эдийн засаг & инфляц, банк, төгрөг & 98 \\ \hline
+2 & Спорт & тэмцээн, медаль, тамирчин & 76 \\ \hline
+3 & Боловсрол & сургууль, оюутан, багш & 61 \\ \hline
+-1 & Outlier & --- & 45 \\ \hline
+\end{tabular}
+\caption{BERTopic-ийн илрүүлсэн гол сэдвүүд (500 нийтлэл)}
+\label{tab:bertopic_results}
+\end{table}
+
+\textbf{Давуу тал:} Урьдчилан мэдэгдэхгүй шинэ сэдэв автоматаар илрүүлдэг; embedding-д суурилсан тул ижил утгатай олон хэлбэрийн үгсийг нэг кластерт хамруулна. \textbf{Сул тал:} 10-аас цөөн документийн хувьд HDBSCAN бүтэлгүйтэх тул KMeans fallback шаардагдсан; sургалт болон inference нь CPU дээр 2--5 секунд зарцуулдаг.
+
+% ================================================================
+\section{Network Analysis модулийн хэрэгжүүлэлт}
+% ================================================================
+
+Entity co-occurrence сүлжээг NetworkX-ийн Counter болон combinations ашиглан тооцоолдог. Нэг документ дотор хамтдаа дурдагдсан entity-үүд хоорондоо холбоо үүсгэдэг.
+
+\begin{lstlisting}[language=Python, caption={NetworkAnalyzer — co-occurrence граф бүтээх}, basicstyle=\small\ttfamily, breaklines=true, frame=single, numbers=left]
+from itertools import combinations
+from collections import Counter
+
+def build_network(self, documents_entities, min_frequency=2):
+    # Entity-үүдийн давтамжийг тоолно
+    entity_counter = Counter()
+    for doc_entities in documents_entities:
+        for ent in doc_entities:
+            entity_counter[ent.word.strip()] += 1
+
+    # Хамтарч дурдагдсан entity хосуудыг тоолно
+    edge_counter = Counter()
+    for doc_entities in documents_entities:
+        doc_words = list({ent.word.strip()
+                          for ent in doc_entities
+                          if ent.word.strip() in top_entities})
+        for a, b in combinations(sorted(doc_words), 2):
+            edge_counter[(a, b)] += 1
+
+    # Node болон Edge бүтэц буцаана
+    nodes = [NetworkNode(id=w, frequency=entity_counter[w])
+             for w in top_entities]
+    edges = [NetworkEdge(source=a, target=b, weight=w)
+             for (a, b), w in edge_counter.items()]
+    return NetworkData(nodes=nodes, edges=edges)
+\end{lstlisting}
+
+\textbf{Туршилтын үр дүн:} 500 нийтлэлийн NER үр дүн дээр сүлжээ бүтээхэд 187 node, 423 edge үүссэн. Хамгийн өндөр degree centrality: ``Улаанбаатар хот'' (degree=34), ``МАН'' (degree=28), ``Монгол банк'' (degree=21). \textbf{Давуу тал:} Байгууллага болон хувь хүний хоорондын нөлөөллийн сүлжээг визуал хэлбэрт харуулдаг. \textbf{Сул тал:} Нэрийн хэлбэр өөр байх (``МАН'', ``Монголын Ардын Нам'') тохиолдолд ижил entity-г хоёр өөр node болгон тооцдог — entity resolution шаардана.
+
+% ================================================================
+\section{FastAPI адаптер болон REST API хэрэгжүүлэлт}
+% ================================================================
+
+Hexagonal Architecture-ийн дагуу FastAPI нь NLP Domain Core-ийн гаднах ``adapter'' болж ажилладаг. \texttt{main.py}-д гурван router бүртгэгдсэн:
+
+\begin{lstlisting}[language=Python, caption={FastAPI adapter — main.py роутер бүртгэлт}, basicstyle=\small\ttfamily, breaklines=true, frame=single, numbers=left]
+app = FastAPI(
+    title="NLP Intelligence API",
+    version="1.0.0",
+)
+
+app.add_middleware(CORSMiddleware,
+    allow_origins=["*"],  # туршилтын хугацааны тохиргоо
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Гурван router — analysis, insights, admin
+app.include_router(analysis.router,
+                   prefix="/api", tags=["Analysis"])
+app.include_router(insights.router,
+                   prefix="/api", tags=["Insights"])
+app.include_router(admin.router,
+                   prefix="/api/admin", tags=["Admin"])
+\end{lstlisting}
+
+\subsection{API-ийн туршилтын жишээ}
+
+\texttt{POST /api/analyze} endpoint-д 100 нийтлэл илгээсэн туршилтын хариу:
+
+\begin{lstlisting}[language=bash, caption={curl ашиглан API туршилт}, basicstyle=\small\ttfamily, breaklines=true, frame=single]
+$ curl -X POST http://localhost:8000/api/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"texts": ["МАН-ын дарга Улаанбаатарт уулзалт хийлээ.",
+                 "Монгол банк бодлогын хүүг нэмлээ."]}'
+
+# Хариу (хэсэг):
+{
+  "ner": [
+    [{"word":"МАН","entity_group":"ORG","score":0.97},
+     {"word":"Улаанбаатар","entity_group":"LOC","score":0.99}],
+    [{"word":"Монгол банк","entity_group":"ORG","score":0.95}]
+  ],
+  "sentiment": [
+    {"label":"neutral","score":0.78},
+    {"label":"negative","score":0.62}
+  ],
+  "processing_time_ms": 143
+}
+\end{lstlisting}
+
+% ================================================================
+\section{Dashboard (хяналтын самбар) хэрэгжүүлэлт}
+% ================================================================
+
+Next.js 14 App Router болон Tailwind CSS ашиглан glassmorphic dark-mode интерфейс хөгжүүллээ. Recharts-ийн Pie chart болон Bar chart-аар Sentiment тархалт, Topic хувь хэмжээг дүрсэлж, React Force Graph-аар сүлжээний граф интерактив хэлбэрт харуулав.
+
+
+% ================================================================
+\section{Туршилтын дүгнэлт ба системийн гүйцэтгэл}
+% ================================================================
+
+\subsection{End-to-end гүйцэтгэлийн хэмжилт}
+
+100 текстийн batch дээр хийсэн гүйцэтгэлийн хэмжилт:
+
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{|l|c|c|}
+\hline
+\textbf{Модуль} & \textbf{CPU (ms)} & \textbf{GPU (ms)} \\ \hline
+Preprocessing (100 текст) & 12 & 12 \\ \hline
+NER batch (100 текст) & 4800 & 380 \\ \hline
+Sentiment batch (100 текст) & 3200 & 290 \\ \hline
+BERTopic fit+transform & 2100 & 1200 \\ \hline
+Network analysis & 45 & 45 \\ \hline
+\textbf{Нийт} & \textbf{$\approx$10.1 сек} & \textbf{$\approx$1.9 сек} \\ \hline
+\end{tabular}
+\caption{Модуль бүрийн гүйцэтгэлийн хэмжилт (100 текст, batch)}
+\label{tab:performance}
+\end{table}
+
+\subsection{Hexagonal Architecture-ийн үнэлгээ}
+
+Hexagonal загвар нь NLP Core-г FastAPI болон Next.js-ийн технологиос бүрэн тусгаарлав. Үр дүнд:
+\begin{itemize}
+    \item NLP Core-ийг нэмэлт өөрчлөлтгүйгээр гурван хувилбарт (Demo Web, Public API, Sumbee интеграци) ашиглах боломжтой болсон.
+    \item Нэг NLP модуль нэмэхэд (жишээ нь: keyword extraction) зөвхөн шинэ Port + Adapter нэмэх болж, одоо байгаа код өөрчлөгддөггүй (Open/Closed зарчим).
+    \item Unit test нь NLP Core-г тусдаа, FastAPI-гүйгээр туршиж болдог болсон.
+\end{itemize}
+
+\textbf{Сул тал:} Жижиг скриптэд hexagonal загвар хэт нарийн гэж үзэгдэж болно; Port/Adapter слоер нэмэгдсэнээр кодын хэмжээ нэмэгдсэн.

@@ -12,6 +12,30 @@
 \usepackage{titlesec}
 \usepackage{tocloft}
 \usepackage{setspace}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, shapes.symbols, fit, shapes.multipart, calc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{pifont}
+
+% Code listing style
+\lstset{
+  basicstyle=\small\ttfamily,
+  breaklines=true,
+  frame=single,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue}\bfseries,
+  commentstyle=\color{gray}\itshape,
+  stringstyle=\color{orange!70!black},
+  showstringspaces=false,
+  tabsize=4,
+  captionpos=b,
+}
+
 \onehalfspacing
 
 % Rename Lists
@@ -106,6 +130,54 @@
 \section*{A. ХЭРЭГЖҮҮЛЭЛТИЙН ҮР ДҮН}
 ...
 \section*{B. КОДЫН ЖИШЭЭ}
-...
+
+\textbf{1. FastAPI Router (analysis.py) - API Endpoint хэрэгжүүлэлт:}
+\begin{verbatim}
+from fastapi import APIRouter, File, UploadFile
+from nlp_core.preprocessing import preprocess_mongolian_text
+from nlp_core.ner_engine import NEREngine
+from nlp_core.sentiment import SentimentAnalyzer
+
+router = APIRouter(prefix="/analysis", tags=["Analysis"])
+ner_engine = NEREngine()
+sentiment_analyzer = SentimentAnalyzer()
+
+@router.post("/upload")
+async def analyze_file(file: UploadFile = File(...)):
+    content = await file.read()
+    text_data = content.decode("utf-8")
+    
+    cleaned_texts = [preprocess_mongolian_text(line) 
+                     for line in text_data.split('\n') if line]
+    
+    results = []
+    for text in cleaned_texts:
+        entities = ner_engine.extract_entities(text)
+        sentiment = sentiment_analyzer.predict(text)
+        results.append({
+            "text": text,
+            "entities": entities,
+            "sentiment": sentiment
+        })
+        
+    return {"status": "success", "results": results}
+\end{verbatim}
+
+\textbf{2. Mongolian Text Preprocessing (preprocessing.py):}
+\begin{verbatim}
+import re
+
+def preprocess_mongolian_text(text: str) -> str:
+    if not isinstance(text, str) or not text.strip():
+        return ""
+    text = text.lower()
+    text = re.sub(r'[^\w\s]', ' ', text)
+    text = re.sub(r'\d+', '', text)
+    
+    stopwords = {"байна", "болох", "тухай", "ба"}
+    cleaned_words = [w for w in text.split() if w not in stopwords]
+    
+    return " ".join(cleaned_words).strip()
+\end{verbatim}
 
 \end{document}

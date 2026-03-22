@@ -1,23 +1,371 @@
 \chapter{Онолын судалгаа}
 
-\section{Агуулгын шинжилгээний орчин үеийн хэрэгцээнүүд}
-Их хэмжээний бүтэцлэгдээгүй текст өгөгдөл дээр дүн шинжилгээ хийхэд NLP-ийн дараах технологиуд голчилж байна: Embedding, Topic Modeling, Named Entity Recognition (NER), Sentiment Analysis, Similarity Analysis, Network Analysis. 
+% ================================================================
+\section{Сошиал мониторингийн системийн онолын үндэс}
+% ================================================================
 
-\subsection{Embedding ба Текстийн утгын дүрслэл}
-Text embedding нь текстэн мэдээллийг олон хэмжээст тоон вектор хэлбэрт хувиргах арга юм. Энэ аргаар үг, өгүүлбэр, баримт бичгүүдийг тоон орон зайд дүрслэх боломжтой болдог. Transformer архитектур дээр суурилсан Sentence-BERT, MPNet зэрэг загварууд нь текстүүдийн similarity хэмжих, topic classification хийх зорилгоор өргөн хэрэглэгдэж байна. 
+\subsection{Сошиал мониторингийн тухай ойлголт}
 
-\section{Сэдэв загварчлал (Topic Modeling)}
-Topic modeling нь их хэмжээний текстэн өгөгдлөөс далд сэдвүүдийг автоматаар илрүүлэх unsupervised machine learning арга юм. Түгээмэл алгоритмуудад:
+Сошиал мониторинг (Social Media Monitoring, SMM) гэдэг нь олон нийтийн сүлжээ, мэдээний сайт, блог болон бусад цахим эх сурвалжаас өгөгдөл цуглуулж, тэдгээрийг дүн шинжилгээнд оруулан бодит цагийн мэдээлэл гаргаж авах автоматжуулсан үйл явц юм~\cite{kaplan2010social}. 
+Орчин үеийн сошиал мониторингийн систем нь дараах үндсэн функцуудыг гүйцэтгэдэг:
+\begin{enumerate}
+    \item \textbf{Өгөгдөл цуглуулалт (Data Collection):} API, web scraping болон RSS зэрэг технологи ашиглан олон эх сурвалжаас бодит цагт өгөгдөл татах.
+    \item \textbf{Текст боловсруулалт (Text Processing):} Цугласан өгөгдлийг цэвэрлэж, стандартчилж, шинжилгээнд бэлтгэх.
+    \item \textbf{Агуулгын шинжилгээ (Content Analysis):} NLP технологи ашиглан текстийн сэдэв, сэтгэл хөдлөл, оролцогч талуудыг тодорхойлох.
+    \item \textbf{Тайлан ба Дүрслэл  (Visualization \& Reporting):} Үр дүнг хэрэглэгчид ойлгомжтой хэлбэрт оруулан харуулах.
+\end{enumerate}
+
+\subsection{Их өгөгдлийн боловсруулалтын сорилтууд}
+
+Интернэтийн хэрэглэгчдийн тоо 2024 оны байдлаар 5.4 тэрбумд хүрч, өдөрт 500 сая tweet, 350 сая Facebook пост зэрэг хэмжээлшгүй их өгөгдөл үүсч байна~\cite{statista2024}. Энэхүү \textit{``Их өгөгдөл''} (Big Data)-ийн боловсруулалтад дараах үндсэн сорилтууд тулгардаг:
+
 \begin{itemize}
-    \item \textbf{LDA (Latent Dirichlet Allocation):} Магадлалд суурилсан арга. 
-    \item \textbf{BERTopic:} Transformer embedding болон HDBSCAN clustering ашигладаг орчин үеийн арга.
-    \item \textbf{Predefined Topic Classification:} Урьдчилан тодорхойлсон сэдвийн embedding үүсгэн Cosine similarity ашиглан хамгийн төстэй сэдэвт ангилдаг. Энэ нь маш хурдан бөгөөд масштаблахад хялбар арга юм.
+    \item \textbf{Хурд (Velocity):} Өгөгдлийн урсгал маш их тул бодит цагийн боловсруулалт шаардагддаг.
+    \item \textbf{Хэмжээ (Volume):} Хэдэн тэрбум текст бичвэрийг хадгалж, задлан шинжлэх шаардлагатай.
+    \item \textbf{Олон янз байдал (Variety):} Бүтэцлэгдсэн (structured), хагас бүтэцтэй болон бүтэцлэгдээгүй (unstructured) өгөгдлийг нэгэн зэрэг боловсруулах.
+    \item \textbf{Үнэн зөв байдал (Veracity):} Сошиал өгөгдөл дотор spam, давтагдсан контент их байдаг.
 \end{itemize}
 
-\section{Нэрлэсэн объект таних (NER) ба Сүлжээний шинжилгээ (Network Analysis)}
-\textbf{NER (Named Entity Recognition)} нь текст доторх PERSON, ORG, DATE, GPE, EVENT зэрэг нэрлэсэн объектуудыг илрүүлэх зорилготой. Үүнийг сэдэв загварчлалтай хослуулан ашигласнаар тухайн сэдвийн хүрээнд "ямар хүмүүс, ямар байгууллага, хаана" гэдэг мэдээллийг гаргаж авах боломжтой.
+Эдгээр сорилтуудыг шийдвэрлэхэд NLP технологи, тэр дундаа deep learning-д суурилсан аргуудын ач холбогдол улам бүр нэмэгдэж байна.
 
-\textbf{Network Analysis} нь NER ашиглан илрүүлсэн entity-үүдийн хоорондын харилцааг (Co-occurrence network) граф хэлбэрээр судлах арга юм. Энэ аргаар мэдээллийн төв зангилаа, хамгийн нөлөөтэй хүн болон байгууллагыг (Degree Centrality, Betweenness) тодорхойлох боломжтой.
+% ================================================================
+\section{Судлагдсан байдал}
+% ================================================================
 
+\subsection{Дэлхийн зах зээлийн судалгаа: Ижил чиглэлийн системүүд}
+
+Сошиал мониторингийн чиглэлд олон улсад хэд хэдэн том систем бий болсон бөгөөд эдгээрийн архитектур, боловсруулалтын арга нь судалгааны чухал суурь болж байна.
+
+\textbf{Brandwatch} нь зах зээлийн тэргүүлэгч сошиал мониторингийн платформ бөгөөд Apache Kafka-д суурилсан бодит цагийн stream processing pipeline ашигладаг. Их хэмжээний текстэд Latent Semantic Analysis (LSA) болон supervised machine learning загварыг хослуулан сэдэв ангилал хийдэг~\cite{brandwatch2023}. Гэвч Brandwatch нь Монгол хэлийг дэмжихгүй, enterprise зардал өндөр байдаг.
+
+\textbf{Meltwater} нь Elasticsearch-д суурилсан real-time индексжүүлэлт ашиглан 270 гаруй хэл дэх мэдээг хянадаг. Sentiment analysis-д машин сургалтын хоёртын ангилалч (binary classifier) хэрэглэж байгаа бол сэдэв илрүүлэлтэд LDA загвараар тодорхойлсон category taxonomy ашигладаг~\cite{meltwater2022}.
+
+\textbf{Sprout Social} нь NLP pipeline-д spaCy болон Transformers-д суурилсан multi-label classification ашиглан нийтлэлийг олон категорит нэгэн зэрэг ангилдаг.
+
+Эдгээр системүүдийн харьцуулалтаас харахад (хүснэгт~\ref{tab:systems_comparison}), Монгол хэлний дэмжлэг болон low-latency inference нь одоогоор шийдэгдээгүй сорилт хэвээр байна.
+
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+\textbf{Систем} & \textbf{Хэлний дэмжлэг} & \textbf{NLP арга} & \textbf{Монгол хэл} & \textbf{Нээлттэй эх} \\ \hline
+Brandwatch & 25+ хэл & LSA + ML & Үгүй & Үгүй \\ \hline
+Meltwater & 270+ хэл & LDA + Rule & Хязгаарлагдмал & Үгүй \\ \hline
+Sprout Social & 30+ хэл & Transformer & Үгүй & Үгүй \\ \hline
+Sumbee.mn (одоогийн) & Монгол & Keyword & Тийм & Үгүй \\ \hline
+Энэхүү судалгаа & Монгол & BERT + BERTopic & Тийм & Тийм \\ \hline
+\end{tabular}
+\caption{Сошиал мониторингийн системүүдийн харьцуулалт}
+\label{tab:systems_comparison}
+\end{table}
+
+\subsection{Монгол хэлний NLP-ийн судалгааны байдал}
+
+Монгол хэлний NLP нь дэлхийн хэмжээнд харьцангуй шинэ судалгааны чиглэл бөгөөд хэд хэдэн онцлог сорилттой тулгардаг.
+
+\textbf{Морфологийн онцлог:} Монгол хэл нь \textit{агглютинатив} (agglutinative) бүтэцтэй бөгөөд нэг үндсэн үгнээс олон зуун хэлбэр үүсэх боломжтой. Жишээлбэл, ``байгуулагдаагүйгийнх нь'' гэсэн нэг үг нь салангид морф хэсгүүдийн нийлбэрээс бүрддэг. Энэ онцлог нь уламжлалт tokenization аргуудыг үр дүнгүй болгодог~\cite{mongolnlp2020}.
+
+\textbf{Галиг бичлэгийн олон хувилбар:} Сошиал орчинд Монгол хэрэглэгчид латин үсгийн галиглыг өргөнөөр ашигладаг. ``Монгол'', ``Mongol'', ``mongol'', ``мongol'' зэрэг олон хэлбэрийг нэг утгаар таних шаардлагатай байдаг.
+
+\textbf{Академик судалгааны байдал:} Mongolian NLP Corpus~\cite{mongolcorpus2019} нь 1.2 сая өгүүлбэртэй корпус бүрдүүлсэн бол Ж.Пүрэв болон Ч.Одбаяр нар~\cite{purev2008} Монгол хэлний morph analysis-д суурилсан POS tagging системийг боловсруулсан. Харин сошиал өгөгдөлд зориулсан topic modeling, NER-ийн судалгаа маш хязгаарлагдмал хэвээр байна.
+
+\textbf{Multilingual загваруудын хувь нэмэр:} XLM-RoBERTa~\cite{conneau2020xlmr}, mBERT~\cite{devlin2019bert} зэрэг multilingual pretrained загварууд Монгол хэлний downstream task-д ашиглах боломжтой болсон нь том ахиц юм. \texttt{Davlan/bert-base-multilingual-cased-ner-hrl} загвар нь 10 гаруй хэлний NER task-д fine-tune хийгдсэн бөгөөд Монгол хэлний entity recognition-д харьцангуй сайн үр дүн үзүүлж байна.
+
+\subsection{Topic Modeling-ийн судалгааны хөгжил}
+
+Topic modeling-ийн чиглэлд Blei болон бусад эрдэмтдийн 2003 онд санал болгосон LDA (Latent Dirichlet Allocation)~\cite{blei2003lda} нь суурь алгоритм болж тогтсон. Дараагийн томоохон ахиц нь 2022 онд Grootendorst-ын санал болгосон BERTopic~\cite{grootendorst2022bertopic} бөгөөд энэ арга нь transformer embedding-ийг dimensionality reduction болон density-based clustering-тэй хослуулан LDA-аас хамаагүй нарийвчлалтай сэдэв илрүүлэх боломжийг нээсэн.
+
+% ================================================================
+\section{Байгалийн хэлний боловсруулалт (NLP)-ийн онолын суурь}
+% ================================================================
+
+\subsection{Transformer архитектур ба BERT загвар}
+
+2017 онд Google Brain-ийн эрдэмтэд ``Attention Is All You Need''~\cite{vaswani2017attention} өгүүлэлдээ \textit{Transformer} архитектурыг танилцуулсан нь NLP-ийн хөгжилд маш том хувьсгал болсон. Transformer нь RNN-ийн дараалалт боловсруулалтын оронд \textit{self-attention} механизмыг ашиглан өгүүлбэрийн бүх токенуудын хоорондын хамаарлыг нэгэн зэрэг тооцдог. Энэ нь:
+\begin{itemize}
+    \item Параллель тооцоолол хийх боломж олгодог (RNN-аас хурдан),
+    \item Урт хамаарлыг (long-range dependency) зөв барьдаг,
+    \item Хэлний контекстийг илүү нарийн дүрсэлдэг.
+\end{itemize}
+
+2019 онд Google-ийн судлаач Devlin болон бусад~\cite{devlin2019bert} эрдэмтэд BERT (Bidirectional Encoder Representations from Transformers) загварыг танилцуулсан. BERT нь \textit{masked language modeling} (MLM) болон \textit{next sentence prediction} (NSP) хоёр даалгаврыг нэгэн зэрэг сургаснаар текстийн хоёр талт (bidirectional) контекстийг авч чаддаг болсон нь уг загварыг NLP-ийн суурь загвар болгосон.
+
+Загварын томьёолол дараах байдалтай:
+\begin{equation}
+    \text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V
+\end{equation}
+Энд $Q$ (Query), $K$ (Key), $V$ (Value) нь загварын дотоод матриц, $d_k$ нь Key-ийн хэмжээс юм.
+
+\subsection{Embedding ба Текстийн олон хэмжээст дүрслэл}
+
+Текстийн embedding нь үг, өгүүлбэр болон баримт бичгийг тасралтгүй тоон векторт хөрвүүлэх арга юм. Уламжлалт bag-of-words аргаас ялгаатай нь embedding нь семантик утгыг хадгалдаг: утга ойролцоо үгс тоон орон зайд ойр байрладаг.
+
+\textbf{Word2Vec}~\cite{mikolov2013word2vec} нь 2013 онд Mikolov-ын санал болгосон хоёр давхаргат нейрон сүлжээнд суурилсан word embedding арга бөгөөд Skip-gram болон CBOW гэсэн хоёр хувилбартай.
+
+\textbf{Sentence-BERT (SBERT)}~\cite{reimers2019sbert} нь BERT загварт \textit{siamese network} бүтэц нэмж, өгүүлбэрийн оновчтой embedding үүсгэдэг. SBERT нь cosine similarity-г шууд тооцоолоход оновчтой бөгөөд:
+\begin{equation}
+    \text{sim}(u, v) = \frac{u \cdot v}{\|u\| \cdot \|v\|}
+\end{equation}
+гэсэн томьёогоор хоёр текстийн ойролцоо байдлыг хэмждэг. Энд $u, v \in \mathbb{R}^d$ нь текстийн embedding вектор юм.
+
+Энэхүү судалгаанд \texttt{sentence-transformers/paraphrase-multilingual-mpnet-base-v2} загвар ашиглан Монгол текстийн semantic embedding үүсгэн topic classification болон similarity analysis-д ашигласан.
+
+\subsection{Сэдэв загварчлал (Topic Modeling)}
+
+\subsubsection{LDA (Latent Dirichlet Allocation)}
+
+LDA~\cite{blei2003lda} нь Bayesian магадлалын онолд суурилсан generative загвар бөгөөд $K$ тооны далд сэдэв (latent topic) байна гэж үзэж, баримт бичиг бүр сэдвүүдийн холимог, сэдэв бүр үгсийн тархалт гэж үздэг. Загварыг тодорхойлох үндсэн магадлалын томьёолол:
+\begin{equation}
+    p(\mathbf{w}, \mathbf{z}, \theta, \phi | \alpha, \beta) = \prod_{k=1}^{K} p(\phi_k | \beta) \prod_{d=1}^{D} p(\theta_d | \alpha) \prod_{n=1}^{N_d} p(z_{dn} | \theta_d) p(w_{dn} | \phi_{z_{dn}})
+\end{equation}
+Энд $\theta_d$ нь баримт $d$-ийн сэдвийн тархалт, $\phi_k$ нь $k$-р сэдвийн үгсийн тархалт, $\alpha, \beta$ нь Dirichlet prior hyperparameter юм.
+
+LDA-ийн давуу тал нь тайлбарлагдах боломжтой, бусад аргачлалуудтай харьцуулахад тооцоолол бага хийгддэг. Гэхдээ pre-defined topic count $K$ шаардагддаг, embedding-ийн семантик ойролцоо байдлыг тооцдоггүй, богино текстэд (tweet, пост) муу ажилладаг сул талтай.
+
+\subsubsection{BERTopic}
+
+BERTopic~\cite{grootendorst2022bertopic} нь орчин үеийн сэдэв загварчлалын арга бөгөөд дараах дөрвөн үе шатаас бүрдэнэ:
+
+\begin{enumerate}
+    \item \textbf{Embedding үүсгэх:} Sentence-BERT загвараар текст бүрийг $\mathbb{R}^{768}$ хэмжээст вектор болгон хөрвүүлэх.
+    \item \textbf{Хэмжээс бууруулалт:} UMAP (Uniform Manifold Approximation and Projection) ашиглан embedding-ийг $\mathbb{R}^{5}$ болгон бууруулах.
+    \item \textbf{Кластерлалт:} HDBSCAN (Hierarchical Density-Based Spatial Clustering) ашиглан нягт бүлэглэлийг илрүүлэх, дуу чимээ (noise) гэж тодорхойлсон цэгүүдийг \texttt{-1} ангилалд хамааруулах.
+    \item \textbf{Сэдвийн дүрслэл:} c-TF-IDF (class-based TF-IDF) ашиглан сэдэв бүрийн хамгийн онцлог үгсийг гаргах.
+\end{enumerate}
+
+BERTopic-ийн c-TF-IDF томьёо:
+\begin{equation}
+    W_{t,c} = tf_{t,c} \cdot \log\left(1 + \frac{A}{tf_t}\right)
+\end{equation}
+Энд $tf_{t,c}$ нь $c$ классийн $t$ үгийн давтамж, $A$ нь нийт баримт бичгийн дундаж тоо, $tf_t$ нь нийт класс дахь $t$ үгийн давтамж юм.
+
+\subsubsection{Predefined Topic Classification}
+
+Урьдчилан тодорхойлсон сэдвийн ангилалт нь сэдэв бүрт жишиг embedding үүсгэж, шинэ текстийн embedding-тэй cosine similarity харьцуулан хамгийн төстэй сэдэвт ангилдаг. Энэ арга нь:
+\begin{itemize}
+    \item inference хурд маш өндөр (1--5 ms/текст),
+    \item сэдвийн тоо ба агуулгыг бизнесийн хэрэгцээнд тохируулах боломжтой,
+    \item шинэ сэдэв нэмэхэд дахин сургалт шаардахгүй.
+\end{itemize}
+Харин шинэ, урьдчилан тодорхойлогдоогүй сэдвүүдийг илрүүлж чаддаггүй нь уг аргын гол хязгаарлалт юм.
+
+\subsection{Нэрлэсэн объект таних (Named Entity Recognition, NER)}
+
+NER нь текст дотроос тодорхой ангиллын нэрлэсэн объектуудыг (named entities) автоматаар таних sequence labeling даалгавар юм. Уламжлалт NER нь PERSON, ORG, LOC, DATE, GPE зэрэг стандарт ангилал ашигладаг.
+
+\textbf{Sequence labeling:} NER даалгаварт BIO (Begin-Inside-Outside) tagging schema өргөнөөр хэрэглэгддэг:
+\begin{itemize}
+    \item \texttt{B-PER}: хүний нэрийн эхний токен
+    \item \texttt{I-PER}: хүний нэрийн дотоод токен
+    \item \texttt{O}: entity биш токен
+\end{itemize}
+
+BERT-д суурилсан NER нь токен бүрт softmax ангилалч ашиглан BIO шошго оноодог:
+\begin{equation}
+    p(y_i | x_i, \mathbf{h}) = \text{softmax}(W \cdot h_i + b)
+\end{equation}
+Энд $h_i$ нь $i$-р токений BERT-ийн hidden state, $W$ ба $b$ нь сургагдах параметр юм.
+
+Энэхүү судалгаанд \texttt{Davlan/bert-base-multilingual-cased-ner-hrl} загварыг ашигласан бөгөөд энэ нь 10 хэлний CoNLL-2003, WikiAnn зэрэг стандарт NER датасет дээр fine-tune хийгдсэн multilingual загвар юм.
+
+\subsection{Сэтгэл хөдлөлийн шинжилгээ (Sentiment Analysis)}
+
+Sentiment analysis нь текстийн субьектив санал бодлын чиглэлийг (positive, negative, neutral) автоматаар тодорхойлох даалгавар юм. Уг чиглэлд хоёр үндсэн хандлага байдаг:
+
+\begin{enumerate}
+    \item \textbf{Lexicon-based арга:} Урьдчилан бүрдүүлсэн sentiment dictionary ашиглан үг бүрт оноо өгч, нийтлэг байдлыг тодорхойлдог. Монгол хэлний хувьд sentiment lexicon дутмаг байдаг нь энэ аргын гол сул тал.
+    \item \textbf{Machine Learning-д суурилсан арга:} Сургагдсан датасет дээр ангилалч загвар суралцуулдаг. BERT-д суурилсан загварууд нь уг аргын тэргүүлэгч шийдэл болжээ.
+\end{enumerate}
+
+Sentiment ангиллын алдааг хэмжихэд $F_1$ score ашиглагддаг:
+\begin{equation}
+    F_1 = \frac{2 \cdot \text{Precision} \cdot \text{Recall}}{\text{Precision} + \text{Recall}}
+\end{equation}
+
+Монгол хэлний сошиал өгөгдөлд \texttt{tabularisai/multilingual-sentiment-analysis} загвар ашигласан бөгөөд энэ нь 8 хэлний sentiment датасет дээр fine-tune хийгдсэн.
+
+\subsection{Сүлжээний шинжилгээ (Network Analysis)}
+
+Сүлжээний шинжилгээ нь NER-ийн үр дүнд гарсан entity-үүдийн хамт дурдагдсан байдал (co-occurrence) буюу хоорондын хамаарлыг граф хэлбэрт хөрвүүлэн судлах арга юм. Граф $G = (V, E)$ болон:
+\begin{itemize}
+    \item $V$: NER-ийн entity-үүд (хүмүүс, байгуулллага, байршил)
+    \item $E$: Нэг баримт бичигт хамт дурдагдсан entity-үүдийн хоорондын ирмэг (edge)
+    \item $w(e)$: Хамт дурдагдалтын давтамж (edge weight)
+\end{itemize}
+
+Сүлжээний шинжилгээнд дараах үндсэн хэмжигдэхүүнүүдийг тооцдог:
+\begin{equation}
+    C_D(v) = \frac{\deg(v)}{|V| - 1} \quad \text{(Degree Centrality)}
+\end{equation}
+\begin{equation}
+    C_B(v) = \sum_{s \neq v \neq t} \frac{\sigma_{st}(v)}{\sigma_{st}} \quad \text{(Betweenness Centrality)}
+\end{equation}
+Энд $\sigma_{st}$ нь $s$-аас $t$ руу хамгийн богино замын тоо, $\sigma_{st}(v)$ нь $v$ оройгоор дайрах тийм замын тоо юм. Betweenness centrality өндөр entity нь мэдээллийн сүлжээний ``гүүр'' буюу хамгийн нөлөөтэй зангилаа болдог.
+
+% ================================================================
+\section{Sumbee.mn системийн архитектур ба одоогийн байдлын шинжилгээ}
+% ================================================================
+
+\subsection{Sumbee.mn системийн тухай}
+
+Sumbee.mn нь Монгол улсад 2016 оноос үйл ажиллагаа явуулж буй сошиал мониторингийн платформ юм. Систем нь Facebook, Twitter/X, болон монгол дахь үйл ажиллагаа явуулж буй мэдээний сайт, блогуудаас өгөгдөл цуглуулан хэрэглэгчдэд бодит цагийн мониторинг, сентимент шинжилгээ болон тренд анализийн мэдээлэл өгдөг. Системийн үйлчлүүлэгчдэд хувь хүн, албан байгуулллага, бизнес эрхлэгчид багтдаг.
+
+\subsection{Одоогийн системийн ерөнхий архитектур}
+
+Sumbee.mn системийн одоогийн техник бүтэц нь зураг~\ref{fig:sumbee_arch}-д үзүүлснээр хэд хэдэн давхаргаас бүрдэнэ. 
+\begin{figure}[h!]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[
+    node distance=0.8cm and 1.2cm,
+    every node/.style={font=\small},
+    server/.style={draw, rounded corners=3pt, fill=blue!10, minimum width=2.8cm, minimum height=1.2cm, text centered, text width=2.6cm},
+    db/.style={draw, cylinder, shape border rotate=90, fill=cyan!20, minimum width=1.6cm, minimum height=1.2cm, text centered, text width=1.4cm},
+    process/.style={draw, rounded corners=3pt, fill=orange!15, minimum width=3.2cm, minimum height=1.5cm, text centered, text width=3cm},
+    app/.style={draw, rounded corners=3pt, fill=green!15, minimum width=2.8cm, minimum height=1.2cm, text centered, text width=2.6cm},
+    cloud/.style={draw, ellipse, fill=gray!15, minimum width=2cm, minimum height=1cm, text centered, text width=1.8cm},
+    box/.style={draw, dashed, rounded corners=5pt, inner sep=8pt},
+    arrow/.style={->, >=stealth, thick}
+]
+
+% --- Crawlers (left) ---
+\node[server] (tw) {TW Crawler\\};
+\node[server, below=0.5cm of tw] (fb) {FB Crawler\\};
+\node[server, below=0.5cm of fb] (trend) {YT Crawler\\};
+\node[server, below=0.5cm of trend] (web) {Web Crawler\\};
+
+\node[box, fit=(tw)(web), label=above:{\textbf{Crawler давхарга}}] (crawlerbox) {};
+
+% --- Raw DB ---
+\node[db, right=1.5cm of fb] (rawdb) {Text data};
+\node[server, below=0.8cm of rawdb] (media1) {Media data};
+
+\node[box, fit=(rawdb)(media1), label=above:{\textbf{Raw Storage}}] (rawbox) {};
+
+% --- Processing ---
+\node[process, right=1.5cm of rawdb] (proc) {Processing\\Server\\NLP Pipeline\\};
+
+% --- Processed DBs ---
+\node[db, above right=0.35cm and 1.2cm of proc] (db3p) {DB\\User specific};
+\node[db, below right=0.35cm and 1.2cm of proc] (db2p) {DB\\General};
+
+\node[box, fit=(db3p)(db2p), label=above:{\textbf{Боловсруулсан өгөгдлийн сан}}] (dbbox) {};
+
+% --- Web Server ---
+\node[server] (web33) at ($(db3p)!0.5!(db2p) + (3.4cm, 0)$) {Web Server\\(Application)};
+
+% --- API ---
+\node[cloud, below=1cm of proc] (api) {API / GPT\\(Cloud)};
+
+% --- Arrows ---
+\draw[arrow] (tw) -- (rawdb);
+\draw[arrow] (fb) -- (rawdb);
+\draw[arrow] (trend) -- (rawdb);
+\draw[arrow] (web) -- (rawdb);
+\draw[arrow] (tw) -- (media1);
+\draw[arrow] (fb) -- (media1);
+
+\draw[arrow] (rawdb) -- (proc);
+\draw[arrow] (media1) -- (proc);
+
+\draw[arrow] (proc) -- (db3p);
+\draw[arrow] (proc) -- (db2p);
+\draw[arrow] (proc) -- (api);
+\draw[arrow] (api) -- (proc);
+
+\draw[arrow] (db2p) -- (web33);
+\draw[arrow] (db3p) -- (web33);
+
+\end{tikzpicture}%
+}
+\caption{Sumbee.mn (СИТНЭТ) системийн ерөнхий архитектур}
+\label{fig:sumbee_arch}
+\end{figure}
+
+\subsection{Системийн давхаргуудын шинжилгээ}
+
+\textbf{Crawler давхарга:} Олон төрлийн crawler (Twitter/X, Facebook, YouTube, Web) зэрэгцэн (parallel) ажиллаж олон нийтийн сүлжээ болон мэдээний эх сурвалжаас өгөгдөл цуглуулдаг.
+
+\textbf{Raw Storage давхарга:} Crawler-уудаас ирсэн текст болон медиа (зураг, видео) өгөгдлийг тусдаа хадгалалтын бүрэлдэхүүнүүдэд хадгалдаг.
+
+\textbf{Processing Server:} Цугласан өгөгдлийг текст ангилал, шошголол, сэдэв тодорхойлолт, медиа боловсруулалт зэрэг NLP модулиудаар дамжуулан боловсруулдаг. Шаардлагатай тохиолдолд гадаад AI API-тай холбогдох боломжтой.
+
+\textbf{Боловсруулсан өгөгдлийн сан:} Боловсруулалтын үр дүнг хэрэглэгчийн хэрэгцээнд тохирсон бүтэцтэй өгөгдлийн санд хадгалдаг.
+
+\textbf{Application давхарга:} Хэрэглэгчийн интерфейс болон бизнесийн логикийг агуулсан вэб сервер бөгөөд боловсруулсан өгөгдлийг хэрэглэгчдэд харуулдаг.
+
+\subsection{Одоогийн системийн хязгаарлалтууд}
+
+Sumbee.mn-ийн одоогийн Processing Server нь текст боловсруулалтад ихэвчлэн keyword matching болон rule-based арга хэрэглэдэг. Энэ нь:
+
+\begin{itemize}
+    \item \textbf{Сэдвийн автомат тодорхойлол дутмаг:} Нийтлэл \textit{юуны тухай} яриад байгааг (семантик сэдэв) автоматаар ялгаж чаддаггүй.
+    \item \textbf{Entity-ийн харилцааны шинжилгээ дутмаг:} Ямар хүн, байгуулллага ямар сэдвийн хүрээнд хамт дурдагдаж байгааг тодорхойлох чадваргүй.
+    \item \textbf{LLM-ийн тооцооллын зардал:} Их хэмжээний өгөгдөл дээр GPT-4 зэрэг LLM API ашиглах нь 100,000 текстэд \$200--\$300, latency 1--3 секунд болдог тул бодит цагийн системд тохиромжгүй.
+\end{itemize}
+
+Энэхүү судалгааны NLP pipeline нь уг хязгаарлалтуудыг шийдвэрлэхэд чиглэсэн бөгөөд Processing Server-ийн шинэ модуль болон нэмэгдэх юм.
+
+% ================================================================
+\section{Аргуудын харьцуулалт ба шийдлийн сонголт}
+% ================================================================
+
+\subsection{Текст боловсруулалтын гурван аргын харьцуулалт}
+
+Сошиал мониторингийн системд NLP pipeline нэвтрүүлэхэд дараах гурван үндсэн аргыг авч үзлээ:
+
+\textbf{1. Мэдлэгийн санд суурилсан арга (Knowledge Base / Rule-based):}
+Хамгийн их давтагдаж буй токенуудаас гараар ангилал үүсгэж, шинэ текстийг тухайн мэдлэгийн сантай харьцуулан ангилдаг. Энэ арга нь GPU шаардахгүй, query хурд маш өндөр (1--5 ms), хэрэгжүүлэхэд хялбар. Гэхдээ гараар бүрдүүлэх, шинэчлэх их хугацаа шаарддаг, шинэ үг, нэр томьёо гарахад автоматаар ажилладаггүй сул талтай.
+
+\textbf{2. Pretrained BERT загварт суурилсан арга:}
+Bert болон multilingual загваруудыг тухайн даалгаварт зохицуулан fine-tune хийж ашигладаг. T4 GPU-тэй орчинд 20--60 ms latency, 200--500 өгүүлбэр/секунд гүйцэтгэлтэй. Сургалтын датасет шаардагдах боловч нэг удаа сургасан загварыг дахин сургахгүйгээр ашиглаж болно. Хурд болон нарийвчлалын оновчтой тэнцвэрийг хангадаг.
+
+\textbf{3. LLM API (GPT-4o зэрэг):}
+Anthropic, OpenAI зэрэг компаниудын API-аар дуудаж flexible, олон даалгаварт ашиглагддаг. Сургалт шаардалгүй, шинэ хэлэнд хурдан дасан зохицдог. Гэхдээ 1--3 секундын latency, \$200--\$300/100K текстийн зардал, internet connectivity шаардлага нь бодит production системд хязгаарлалт болдог.
+
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Хэмжүүр} & \textbf{Knowledge DB} & \textbf{Fine-tuned BERT} & \textbf{LLM API} \\ \hline
+GPU шаардлага & Шаардалгүй & Заавал биш & Шаардалгүй \\ \hline
+Latency & 1--5 ms & 20--100 ms & 1--3 сек \\ \hline
+100K текстийн зардал & Маш бага & Бага & \$200--\$300 \\ \hline
+Нарийвчлал & Дунд & Өндөр & Маш өндөр \\ \hline
+Offline ажиллагаа & Тийм & Тийм & Үгүй \\ \hline
+Шинэ сэдэв илрүүлэлт & Хязгаарлагдмал & Дунд & Өндөр \\ \hline
+Монгол хэл & Тохируулж болно & Дунд & Дунд \\ \hline
+\end{tabular}
+\caption{Текст боловсруулалтын аргуудын нарийвчилсан харьцуулалт}
+\label{tab:method_comparison}
+\end{table}
+
+\subsection{Шийдлийн сонголтын үндэслэл}
+
+Хүснэгт~\ref{tab:method_comparison}-ийн харьцуулалтаас дараах дүгнэлт хийгдэв:
+
+\begin{enumerate}
+    \item \textbf{Pretrained BERT загвар} нь latency болон нарийвчлалын тэнцвэрийн хувьд хамгийн тохиромжтой шийдэл болж байна. Sumbee-ийн Processing Server-т нэмэлт GPU шаардалгүйгээр CPU орчинд ч 100--300 ms-д ажиллах боломжтой.
+    \item \textbf{Knowledge Base} аргыг BERT-тэй хослуулан ашиглах нь: тодорхой, урьдчилан мэдэгдэж буй нэр томьёо, байгуулллагын нэрийг маш хурдан (1--5 ms) таних боломж олгоно.
+    \item \textbf{LLM API} нь зардал болон latency-ийн асуудлаас шалтгаалан batch processing-д биш, харин тусгай дүн шинжилгээний хэрэгцээнд (жишээ нь тайлан боловсруулалт) ашиглах нь оновчтой.
+\end{enumerate}
+
+Тиймээс энэхүү судалгаанд \textbf{``Pretrained BERT + Knowledge Base''}-ийн хосолсон арга зүйг сонгосон нь зардал, хурд, нарийвчлалын гурван шаардлагыг нэгэн зэрэг хангах боломж олгодог.
+
+% ================================================================
 \section{Дүгнэлт}
-Текст боловсруулах аргуудыг (DB-д суурилсан мэдлэгийн сан, Pretrained BERT загвар, LLM API) харьцуулан үзвэл, LLM API нь зардал ихтэй бөгөөд latency өндөр, харин мэдлэгийн сангийн арга нь гараар шинэчлэх шаардлага ихтэй байдаг. Тиймээс Pretrained BERT загварыг ашиглах нь хурд (latency) болон нарийвчлалын хувьд хамгийн тохиромжтой балансыг бүрдүүлж байна.
+% ================================================================
+
+Онолын судалгааны бүлгийн дүгнэлтэнд:
+
+\begin{enumerate}
+    \item Сошиал мониторингийн системд их хэмжээний бүтэцлэгдээгүй текст өгөгдлийг боловсруулах NLP технологийн хэрэгцээ улам бүр нэмэгдэж байна. Монгол хэлний хувьд агглютинатив шинж, галиг бичлэгийн олон хувилбар зэрэг онцлогоос шалтгаалан NLP шийдлүүд хязгаарлагдмал байна.
+
+    \item Академик болон дэлхийн зах зээлийн ижил системүүдийн судалгаанаас харахад BERTopic, multilingual BERT загварууд нь олон хэлний текст шинжилгээнд тэргүүлэгч арга болж тогтоогдсон. Гэвч Монгол хэлийг тусгайлан дэмждэг нарийвчилсан шийдэл дутмаг байна.
+
+    \item Sumbee.mn системийн одоогийн архитектурын шинжилгээнд дөрвөн давхаргат (crawler, raw storage, processing, application) бүтэц тодорхойлогдсон бөгөөд Processing Server-т NLP pipeline нэмэх техникийн боломж байгааг баталгаажуулав.
+
+    \item Аргуудын харьцуулалтаас ``Pretrained BERT + Knowledge Base'' хосолсон арга нь хурд, нарийвчлал, зардлын хувьд хамгийн тохиромжтой шийдэл болохыг тогтоов. Энэ арга нь дараах бүлгийн системийн зохиомж болон хэрэгжүүлэлтийн үндэс болно.
+\end{enumerate}
