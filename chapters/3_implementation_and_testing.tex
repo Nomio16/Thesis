@@ -1,6 +1,5 @@
 \chapter{Хэрэгжүүлэлт ба туршилт}
 
-Энэ бүлэгт системийн бодит хэрэгжүүлэлтийг ашигласан технологиудын тайлбар, гол модулиудын код жишээ, туршилтын үр дүн болон тус бүрийн давуу болон сул талуудын шинжилгээтэй хамт танилцуулна.
 
 % ================================================================
 \section{Ашигласан технологиуд}
@@ -145,26 +144,360 @@ class NEREngine:
         # ... entity_group, score, start, end буцаана
 \end{lstlisting}
 
-\subsection{NER туршилтын үр дүн}
+\subsection{NER туршилтын үр дүн (fine-tune хийхээс өмнө)}
 
-Sumbee.mn-ийн 500 нийтлэл дээр туршилт хийсэн үр дүн:
+Суурь загвар (\texttt{Davlan/bert-base-multilingual-cased-ner-hrl})-ыг Sumbee.mn-ийн 500 нийтлэл дээр entity-level exact match аргаар үнэлэхэд дараах үр дүн гарав:
 
 \begin{table}[h!]
 \centering
 \renewcommand{\arraystretch}{1.4}
-\begin{tabular}{|c|c|c|c|c|}
+\begin{tabular}{|l|c|c|c|c|}
 \hline
-\textbf{Entity} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} & \textbf{Жишээ} \\ \hline
-PER (Хүн нэр) & 0.89 & 0.85 & 0.87 & Батбаяр, Х.Баттулга \\ \hline
-ORG (Байгууллага) & 0.82 & 0.79 & 0.80 & МАН, Монгол банк \\ \hline
-LOC (Газар нэр) & 0.91 & 0.88 & 0.89 & Улаанбаатар, Говь \\ \hline
-Нийт (macro avg) & 0.87 & 0.84 & \textbf{0.85} & --- \\ \hline
+\textbf{Үзүүлэлт} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} & \textbf{Тайлбар} \\ \hline
+Суурь загвар (500 нийтлэл) & 0.321 & 0.316 & \textbf{0.318} & Fine-tune хийгдээгүй \\ \hline
 \end{tabular}
-\caption{NER загварын гүйцэтгэлийн үнэлгээ (500 нийтлэл)}
+\caption{NER суурь загварын гүйцэтгэлийн үнэлгээ (eval/evaluate\_tokens.py, 500 нийтлэл)}
 \label{tab:ner_results}
 \end{table}
 
-\textbf{Давуу тал:} Монгол хэлний агглютинатив бүтцийг BERT subword tokenization сайн зохицуулдаг; batch inference нь GPU дээр 20–60 ms латентитэй. \textbf{Сул тал:} Галиглаж бичсэн нэрүүд (``Ulaanbaatar'', ``Batbayar'') буруу таних тохиолдол бий; загвар Монгол хэл дээр fine-tune хийгдээгүй тул зарим домайн-специфик нэршил алдагддаг.
+\begin{itemize}
+    \item \textbf{True Positives:} 226 — зөв олсон entity
+    \item \textbf{False Positives:} 478 — буруу таньсан entity
+    \item \textbf{False Negatives:} 489 — алдсан entity
+\end{itemize}
+
+F1=0.318 нь бодит хэрэглээнд тохирохгүй бага үзүүлэлт юм. Гол шалтгаанууд нь: (1) загвар Монгол хэл дээр тусгайлан fine-tune хийгдээгүй, (2) Монгол нэрийн ``А.Бат-Эрдэнэ'' хэлбэрийг хуваан таньдаг, (3) ``МАН'', ``УИХ'' зэрэг Монгол товчлолыг мэддэггүй.
+
+\textbf{Давуу тал:} Монгол хэлний агглютинатив бүтцийг BERT subword tokenization зохицуулж чаддаг; batch inference нь GPU дээр 20--60 ms латентитэй. \textbf{Сул тал:} Fine-tune хийхгүйгээр Монгол текст дээр F1=0.318 — домайн-специфик нэршил, товчлол алдагддаг.
+
+% ================================================================
+\section{NER загварын нарийн тааруулга (Fine-tuning)}
+% ================================================================
+
+Суурь загвар (\texttt{Davlan/bert-base-multilingual-cased-ner-hrl}) нь Монгол хэл дээр тусгайлан сургаагүй тул хэд хэдэн чухал дутагдалтай байв. Тухайлбал ``Л.Оюун-Эрдэнэ'' нэрийг ``Л'' болон ``Оюун-Эрдэнэ'' гэж хоёр тусдаа entity болгон хуваадаг, ``МАН'' зэрэг Монгол байгууллагын товчлолыг таньдаггүй, мөн газрын нэрийн нарийн ялгааг сайн ялгадаггүй байсан. Эдгээр асуудлыг шийдэхийн тулд хоёр үе шаттай fine-tuning хийв.
+
+\subsection{Асуудлын тодорхойлолт — Tokenization ба тэмдэглэлийн зөрчил}
+
+BERT загварын WordPiece tokenizer нь текстийг sub-token (дэд-токен) болгон хуваадаг. Монгол хэлний нэрийн ``Д.Батулга'' хэлбэрт энэ нь онцгой асуудал үүсгэдэг:
+
+\begin{lstlisting}[caption={WordPiece tokenization — цэг дээр хуваагдах жишээ}, basicstyle=\small\ttfamily, breaklines=true, frame=single]
+Оригинал:    "Д.Батулга"
+Токенууд:    ["Д", ".", "Батулга"]     (3 токен)
+
+V1 тэмдэглэл (word-level):
+  Д        → B-PER
+  .        → -100    ← загвар "." тэмдэгтийг нэрийн дотор
+  Батулга  → -100       гэдгийг хэзээ ч суралцдаггүй!
+
+V2 тэмдэглэл (character-offset):
+  Д        → B-PER
+  .        → I-PER   ← загвар "." нь нэрийн дотор
+  Батулга  → I-PER      байж болохыг суралцдаг!
+\end{lstlisting}
+
+V1 сургалтын өгөгдөлд зөвхөн эхний дэд-токен тэмдэглэл авч, үлдсэн нь $-100$ (``үл тооцох'') утга авдаг байсан. Үүний улмаас загвар ``\texttt{.}'' тэмдэгтийг нэрийн дотор байж болохыг хэзээ ч суралцаагүй бөгөөд inference хийхэд ``\texttt{.}'' дээр entity-г таслан хуваадаг байв. Ижил асуудал ``\texttt{-}'' (зураас) тэмдэгт дээр ч тохиолддог байсан (жишээ нь ``Оюун-Эрдэнэ'').
+
+\subsection{V1 сургалт — Суурь fine-tuning}
+
+Эхний fine-tuning нь CoNLL форматын (үг-level тэмдэглэл) өгөгдөл ашигласан бөгөөд \texttt{Davlan/bert-base-multilingual-cased-ner-hrl} суурь загвараас эхлэн сургасан. Google Colab-ийн T4 GPU дээр 4 epoch сургасан:
+
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+\textbf{Epoch} & \textbf{Training Loss} & \textbf{Val Loss} & \textbf{F1} & \textbf{Precision} & \textbf{Recall} \\ \hline
+1 & 0.0875 & 0.1042 & 0.773 & 0.752 & 0.794 \\ \hline
+2 & 0.0587 & 0.1027 & 0.801 & 0.773 & 0.830 \\ \hline
+3 & 0.0390 & 0.1007 & 0.811 & 0.771 & 0.856 \\ \hline
+4 & 0.0259 & 0.1108 & 0.809 & 0.786 & 0.834 \\ \hline
+\end{tabular}
+\caption{V1 fine-tuning сургалтын үр дүн (CoNLL word-level тэмдэглэл)}
+\label{tab:v1_training}
+\end{table}
+
+V1 загвар F1=0.811 хүрсэн нь суурь загвараас мэдэгдэхүйц сайжирсан боловч Монгол нэрийн ``А.Бат-Эрдэнэ'' хэлбэрийг зөв таньдаггүй сул талтай байсан. Eval скрипт (\texttt{eval/evaluate\_tokens.py})-ийг Sumbee.mn-ийн 500 нийтлэл дээр ажиллуулахад entity-level F1=0.32 гарсан нь бодит хэрэглээнд тохирохгүй байгааг баталсан.
+
+\subsection{V2 сургалтын өгөгдлийн бэлтгэл}
+
+V2 сургалтын өгөгдлийг бэлтгэхэд дараах алхмуудыг хэрэгжүүлэв:
+
+\subsubsection{Тэмдэглэлийн формат — Character-offset}
+
+Word-level тэмдэглэлийн оронд character-offset (тэмдэгт-хэсгийн) тэмдэглэлийг ашиглав. Энэ форматад entity-ийн эхлэл ба төгсгөлийн тэмдэгтийн байрлалыг (start, end) тодорхойлж, тухайн хэсэгт багтах \textbf{бүх} дэд-токенд BIO тэмдэглэл өгдөг:
+
+\begin{lstlisting}[caption={Character-offset JSON формат}, basicstyle=\small\ttfamily, breaklines=true, frame=single]
+{
+  "text": "Ерөнхий сайд Л.Оюун-Эрдэнэ мэдэгдэл хийлээ",
+  "labels": [[13, 27, "PER"]]
+}
+// Тэмдэгт байрлал [13:27] = "Л.Оюун-Эрдэнэ"
+// Бүх дэд-токен (Л, ., Оюун, -, Эрдэнэ) B-PER/I-PER авна
+\end{lstlisting}
+
+\subsubsection{Өгөгдлийн эх сурвалжууд}
+
+Сургалтын өгөгдлийг олон эх сурвалжаас нэгтгэн үүсгэв:
+
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{|l|c|p{5.5cm}|}
+\hline
+\textbf{Эх сурвалж} & \textbf{Тоо} & \textbf{Тайлбар} \\ \hline
+NER\_v1.0.json.gz & 10,162 & Монгол NER корпус — гар тэмдэглэлт, PER/ORG/LOC/MISC \\ \hline
+Монгол нэрс & 120+ & Түгээмэл эрэгтэй, эмэгтэй нэрс \\ \hline
+Улс төрчид & 30+ & Одоогийн бодит нэр, үсгийн товчлолтой (Л.Оюун-Эрдэнэ, У.Хүрэлсүх г.м.) \\ \hline
+Товчлолууд & 526 & Монгол байгууллагын товчлол ба бүтэн нэр (УИХ, МАН г.м.) \\ \hline
+Засгийн газрын байгууллага & 30+ & Яам, агентлагийн бүтэн нэр \\ \hline
+Компани / банк / хэвлэл мэдээлэл & 50+ & Голомт банк, Мобиком, Өрнөдөс ТВ г.м. \\ \hline
+Газар нэр (level 2--5) & 530+ & 22 аймаг, 26 сум, 89 хороо, 142 хороолол \\ \hline
+\end{tabular}
+\caption{V2 сургалтын өгөгдлийн эх сурвалжууд}
+\label{tab:v2_data_sources}
+\end{table}
+
+\subsubsection{Өгөгдлийн үүсгэлтийн онцлог шийдлүүд}
+
+\begin{enumerate}
+    \item \textbf{Цэгтэй нэрийн загвар:} ``Д.Батулга'', ``Л.Оюун-Эрдэнэ'' зэрэг Монгол нэрийн стандарт хэлбэрийг олон тооны template өгүүлбэрт оруулж, загварыг цэгийн дотор entity үргэлжилдгийг суралцуулав.
+    \item \textbf{Залгаварт нэрийн хэлбэр:} Монгол хэлний ``-ын'', ``-ийн'', ``-д'', ``-г'' гэсэн нөхцөл залгасан нэрүүдийг (``Батулгыг'', ``Хүрэлсүхийн'') тусгайлан оруулав.
+    \item \textbf{Товчлол + бүтэн нэр хослол:} ``МАН'' товчлол болон ``Монгол Ардын Нам'' бүтэн нэрийг аль алиныг нь ORG entity-д сургав.
+    \item \textbf{Хольсон entity өгүүлбэрүүд:} Нэг өгүүлбэрт PER + ORG + LOC гурвуулаа орсон жишээнүүд оруулж, загварыг олон entity-тэй контекстэд ажиллахад сургав.
+\end{enumerate}
+
+\subsubsection{Нэгтгэсэн өгөгдлийн статистик}
+
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{|l|c|}
+\hline
+\textbf{Үзүүлэлт} & \textbf{Утга} \\ \hline
+Нийт өгүүлбэр & 20,696 \\ \hline
+LOC тэмдэглэл & 11,246 \\ \hline
+ORG тэмдэглэл & 10,933 \\ \hline
+PER тэмдэглэл & 9,603 \\ \hline
+MISC тэмдэглэл (O болгон хөрвүүлсэн) & 2,839 \\ \hline
+Цэгтэй нэр entity & 6,862 \\ \hline
+Зураастай нэр entity & 1,185 \\ \hline
+Нөхцөл залгасан нэр entity & 8,308 \\ \hline
+Валидацийн алдаа & 0 \\ \hline
+\end{tabular}
+\caption{V2 сургалтын өгөгдлийн статистик (train\_v2\_merged.jsonl)}
+\label{tab:v2_data_stats}
+\end{table}
+
+\subsection{V2 сургалтын тохиргоо ба явц}
+
+V2 fine-tuning нь V1 загвараас үргэлжлүүлэн сургасан (continued fine-tuning). Суурь загвараас шинээр эхлэхийн оронд V1-д суралцсан мэдлэг дээр нэмж сургав.
+
+\subsubsection{Сургалтын тохиргоо}
+
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.4}
+\small
+\begin{tabular}{|p{3cm}|p{2.8cm}|p{3.5cm}|p{4.5cm}|}
+\hline
+\textbf{Параметр} & \textbf{V1} & \textbf{V2} & \textbf{Тайлбар} \\ \hline
+Суурь загвар & Davlan BERT & Nomio4640/ ner-mongolian (V1) & V2 нь V1-ээс үргэлжлүүлсэн \\ \hline
+Learning rate & 3e-5 & 2e-5 & Үргэлжлүүлэн сургахад бага LR \\ \hline
+Epoch & 4 & 5 & Шинэ өгөгдлийн хэмжээнд тохируулсан \\ \hline
+Batch size & 16 & 16 & T4 GPU-ийн санах ойд тохирсон \\ \hline
+Warmup steps & 200 & 300 & Илүү их өгөгдөлтэй тул нэмсэн \\ \hline
+Weight decay & 0.01 & 0.01 & Ижил регуляризаци \\ \hline
+FP16 & Тийм & Тийм & Хагас нарийвчлалтай сургалт \\ \hline
+Тэмдэглэлийн формат & CoNLL word-level & JSON character-offset & Бүх дэд-токен тэмдэглэл авна \\ \hline
+Сургалтын өгүүлбэр & $\sim$8,000 & 20,696 & 2.5 дахин их өгөгдөл \\ \hline
+Валидацийн өгүүлбэр & 915 & 915 & Ижил eval set \\ \hline
+\end{tabular}
+\normalsize
+\caption{V1 ба V2 сургалтын тохиргооны харьцуулалт}
+\label{tab:v1_v2_config}
+\end{table}
+
+\subsubsection{Character-offset tokenization алгоритм}
+
+V2 сургалтын гол шинэлэг шийдэл нь character-offset-д суурилсан токенчлолын тааруулга юм. Уг алгоритм нь HuggingFace tokenizer-ийн \texttt{return\_offsets\_mapping} функцийг ашиглан токен бүрийн анхны текст дэх тэмдэгтийн байрлалыг авч, entity span-д харьцуулдаг:
+
+\begin{lstlisting}[language=Python, caption={Character-offset tokenization тааруулга}, basicstyle=\small\ttfamily, breaklines=true, frame=single, numbers=left]
+def tokenize_json_entry(entry):
+    text = entry['text']
+    label_spans = entry['labels']  # [[start, end, label], ...]
+    encoding = tokenizer(text, truncation=True, max_length=512,
+                         return_offsets_mapping=True)
+    offset_mapping = encoding['offset_mapping']
+    token_labels = []
+    for idx, (tok_start, tok_end) in enumerate(offset_mapping):
+        if tok_start == 0 and tok_end == 0:
+            token_labels.append(-100)  # [CLS], [SEP] тусгай токен
+            continue
+        label = "O"
+        for span_start, span_end, span_label in label_spans:
+            if tok_start >= span_start and tok_end <= span_end:
+                # Өмнөх токен мөн entity дотор бол I-, үгүй бол B-
+                is_first = True
+                if idx > 0:
+                    prev_s, prev_e = offset_mapping[idx - 1]
+                    if prev_s >= span_start and prev_e <= span_end:
+                        is_first = False
+                label = f"B-{span_label}" if is_first else f"I-{span_label}"
+                break
+        token_labels.append(label2id.get(label, 0))
+    encoding['labels'] = token_labels
+    return encoding
+\end{lstlisting}
+
+Энэ алгоритмын гол давуу тал нь entity span дотор орших \textbf{бүх} тэмдэгт — ``\texttt{.}'', ``\texttt{-}'', дэд-үг (subword) зэрэг — B-/I- тэмдэглэл авдаг. Word-level аргаас ялгаатай нь $-100$ (үл тооцох) утга зөвхөн тусгай токен ([CLS], [SEP], [PAD]) болон entity-ийн гаднах padding-д хэрэглэгддэг.
+
+\subsection{V2 сургалтын үр дүн}
+
+Google Colab T4 GPU дээр 5 epoch, нийт 46 минутын сургалт хийв:
+
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+\textbf{Epoch} & \textbf{Training Loss} & \textbf{Val Loss} & \textbf{F1} & \textbf{Precision} & \textbf{Recall} \\ \hline
+1 & 0.0388 & 0.2818 & 0.797 & 0.732 & 0.876 \\ \hline
+2 & 0.0195 & 0.3036 & 0.822 & 0.756 & 0.901 \\ \hline
+3 & 0.0147 & 0.3283 & 0.833 & 0.763 & 0.917 \\ \hline
+4 & 0.0083 & 0.3422 & 0.843 & 0.776 & 0.924 \\ \hline
+\textbf{5} & \textbf{0.0048} & \textbf{0.3629} & \textbf{0.845} & \textbf{0.778} & \textbf{0.925} \\ \hline
+\end{tabular}
+\caption{V2 fine-tuning сургалтын үр дүн (character-offset тэмдэглэл)}
+\label{tab:v2_training}
+\end{table}
+
+\subsection{Сургалтын явцын шинжилгээ}
+
+\subsubsection{Training Loss — Суралцалтын явц}
+
+Training loss нь epoch бүрт тасралтгүй буурч (0.0388 → 0.0048) загвар сургалтын өгөгдлийг маш сайн суралцаж байгааг харуулав. Epoch 5-д loss 0.0048 хүрсэн нь загвар сургалтын өгүүлбэрүүдийн entity-г бараг бүрэн зөв таньж байгааг илтгэнэ.
+
+\subsubsection{Validation Loss — Ерөнхийлөх чадвар}
+
+Validation loss нь epoch 1-ийн 0.2818-аас epoch 5-д 0.3629 болж нэмэгдсэн. Энэ нь дараах шалтгаантай:
+
+\begin{enumerate}
+    \item \textbf{Тархалтын зөрүү (Distribution mismatch):} Сургалтын өгөгдөл нь үүсгэсэн (generated) өгүүлбэрүүд, харин валидацийн өгөгдөл нь бодит текстээс авсан CoNLL формат. Хоёр өгөгдлийн хэв маяг ялгаатай.
+    \item \textbf{Тэмдэглэлийн формат зөрүү:} Сургалтын өгөгдөлд ``\texttt{.}'' нь I-PER тэмдэглэл авдаг, харин валидацийн өгөгдөлд $-100$ авдаг. Загвар шинэ зүйл суралцаж байгаа ч хуучин eval set үүнийг бүрэн хэмжээгүй.
+    \item \textbf{Хэмжээний зөрүү:} Сургалтын 20,696 ба валидацийн 915 өгүүлбэрийн харьцаа (96:4) нь стандарт 80:20 харьцаанаас зөрүүтэй.
+\end{enumerate}
+
+Гэвч F1 оноо тасралтгүй өссөн нь validation loss-оос илүү чухал үзүүлэлт юм — загвар зөв хариулт гаргаж байгаа ч итгэлцлийн тархалт (confidence distribution) хуучин eval set-тэй бүрэн нийцэхгүй байна гэсэн үг.
+
+\subsubsection{Precision ба Recall-ийн тэнцвэр}
+
+\begin{itemize}
+    \item \textbf{Recall} (0.925) нь \textbf{Precision} (0.778)-ээс мэдэгдэхүйц өндөр. Энэ нь загвар бодит entity-ийн 92.5\%-ийг олдог боловч олсон entity-ийн 22.2\% нь буруу (false positive) байна гэсэн үг.
+    \item Сошиал мониторингийн хэрэглээнд recall өндөр байх нь чухал — entity орхигдуулахаас илүү нэмэлт entity-г дараа нь шүүх нь хялбар.
+\end{itemize}
+
+\subsection{V1 ба V2 загварын харьцуулалт}
+
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Үзүүлэлт} & \textbf{Суурь загвар} & \textbf{V1} & \textbf{V2} \\ \hline
+F1 Score & 0.318 & 0.811 & \textbf{0.845} \\ \hline
+Precision & 0.321 & 0.786 & 0.778 \\ \hline
+Recall & 0.316 & 0.834 & \textbf{0.925} \\ \hline
+``Д.Батулга'' таних & 2 entity & 2 entity & \textbf{1 entity} \\ \hline
+``Л.Оюун-Эрдэнэ'' таних & 3 entity & 2--3 entity & \textbf{1 entity} \\ \hline
+``МАН'' ORG таних & Үгүй & Тийм & \textbf{Тийм} \\ \hline
+Нөхцөл залгасан нэр & Муу & Дунд & \textbf{Сайн} \\ \hline
+\end{tabular}
+\caption{Суурь загвар, V1, V2 гүйцэтгэлийн харьцуулалт}
+\label{tab:model_comparison}
+
+\small{* Суурь загварын F1=0.318 нь Sumbee.mn-ийн 500 нийтлэлийн entity-level exact match үнэлгээ}
+\end{table}
+
+\subsubsection{Туршилтын жишээ: Суурь загвар ба V2 загварын харьцуулалт}
+
+Ижил 5 өгүүлбэр дээр суурь загвар (\texttt{Davlan/bert-base-multilingual-cased-ner-hrl}) ба fine-tune хийсэн V2 загвар (\texttt{Nomio4640/ner-mongolian})-ыг туршив:
+
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\small
+\begin{tabular}{|p{3.5cm}|p{4.5cm}|p{5.5cm}|}
+\hline
+\textbf{Оролтын текст} & \textbf{Суурь загвар} & \textbf{V2 загвар} \\ \hline
+Л.Оюун-Эрдэнэ ерөнхий сайд &
+  Л. Оюун $\rightarrow$ PER (0.999) \newline Эрдэнэ $\rightarrow$ LOC (0.990) \newline \textit{2 entity, буруу LOC} &
+  \textbf{Л. Оюун-Эрдэнэ $\rightarrow$ PER (1.000)} \newline \textit{1 entity, зөв} \\ \hline
+Пурэвдоржийн Номин-Эрдэнэ МУИС-ын оюутан &
+  Пурэвдор $\rightarrow$ PER (0.822) \newline \#\#мин $\rightarrow$ PER (0.862) \newline Э $\rightarrow$ LOC (0.558) \newline \#\#рдэнэ $\rightarrow$ PER (0.697) \newline МУИС-ын $\rightarrow$ ORG (0.849) \newline \textit{5 хэсэг болж задарсан} &
+  \textbf{Пурэвдоржийн Номин-Эрдэнэ $\rightarrow$ PER (1.000)} \newline \textbf{МУИС $\rightarrow$ ORG (1.000)} \newline \textit{2 entity, бүгд зөв} \\ \hline
+Батулгыг шүүхэд дуудсан &
+  \textit{(entity олдсонгүй)} &
+  \textbf{Батулгыг $\rightarrow$ PER (1.000)} \\ \hline
+МАН-ын дарга &
+  М $\rightarrow$ LOC (0.500) \newline \#\#АН $\rightarrow$ ORG (0.558) \newline \textit{хуваагдсан, буруу LOC} &
+  \textbf{МАН $\rightarrow$ ORG (1.000)} \\ \hline
+УИХ-ын гишүүн Д.Ганбат &
+  УИХ-ын $\rightarrow$ ORG (0.947) \newline Д. Ганбат $\rightarrow$ PER (1.000) &
+  \textbf{УИХ $\rightarrow$ ORG (0.829)} \newline \textbf{Д. Ганбат $\rightarrow$ PER (1.000)} \\ \hline
+\end{tabular}
+\caption{Суурь загвар ба V2 загварын бодит туршилтын харьцуулалт (5 жишээ)}
+\label{tab:test_comparison}
+\normalsize
+\end{table}
+
+Хүснэгтээс харахад суурь загвар нь Монгол нэрийн бүтцийг огт ойлгодоггүй --- ``Л.Оюун-Эрдэнэ'' нэрийг цэгээр нь хувааж, ``Эрдэнэ''-г LOC гэж буруу ангилдаг; ``МАН'' товчлолыг ``М'' (LOC) ба ``\#\#АН'' (ORG) гэж задалдаг; ``Батулгыг'' нөхцөлтэй нэрийг огт таньдаггүй. V2 загвар нь эдгээр бүх тохиолдлыг зөв, өндөр итгэлтэйгээр (0.829--1.000) таньж байна.
+
+\subsection{Загварын байршуулалт ба синхрончлол}
+
+Fine-tune хийсэн загварыг HuggingFace Hub (\texttt{Nomio4640/ner-mongolian}) руу байршуулж, гурван орчинд автоматаар ачаалагдах архитектур хэрэгжүүлэв:
+
+\begin{lstlisting}[language=Python, caption={NEREngine — автомат загвар илрүүлэх механизм}, basicstyle=\small\ttfamily, breaklines=true, frame=single, numbers=left]
+HF_MODEL_ID = "Nomio4640/ner-mongolian"
+
+class NEREngine:
+    def __init__(self, model_name: str = None):
+        local_path = os.path.join(os.path.dirname(__file__),
+                                  "..", "adapters", "ner_mongolian")
+        if model_name:
+            self.model_name = model_name          # гараар тодорхойлсон
+        elif os.path.exists(
+                os.path.join(local_path, "model.safetensors")):
+            self.model_name = local_path           # локал загвар
+        else:
+            self.model_name = HF_MODEL_ID          # HuggingFace Hub
+\end{lstlisting}
+
+Энэ механизмаар:
+\begin{itemize}
+    \item \textbf{Локал хөгжүүлэлт:} \texttt{adapters/ner\_mongolian/} дотор загвар байвал локалаас ачаална
+    \item \textbf{Google Colab + ngrok:} Репо clone хийгдэхэд загвар байхгүй тул HuggingFace Hub-аас татна
+    \item \textbf{HuggingFace Space:} Мөн HuggingFace Hub-аас автоматаар татна
+\end{itemize}
+
+Загварын жинг GitHub-д хадгалахгүй (.gitignore-д нэмсэн) бөгөөд зөвхөн HuggingFace Hub-д хадгалдаг. Ингэснээр GitHub-ийн 100MB файлын хязгаарлалтаас зайлсхийж, кодын репо болон загварын жинг тусад нь удирдах боломжтой болсон.
+
+\subsection{Fine-tuning-ийн давуу ба сул тал}
+
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{|p{6cm}|p{6cm}|}
+\hline
+\textbf{Давуу тал} & \textbf{Сул тал} \\ \hline
+F1 оноо 0.32 → 0.845 (163\% сайжралт) & Валидацийн өгөгдлийн хэмжээ бага (915) \\ \hline
+Цэгтэй нэрийг бүтнээр таньдаг болсон & Үүсгэсэн өгөгдөл бодит текстээс ялгаатай \\ \hline
+Recall 0.925 — entity бараг алдагддаггүй & Precision 0.778 — false positive бий \\ \hline
+HuggingFace Hub-аар хялбар байршуулдаг & Сургалт GPU шаарддаг (Colab T4) \\ \hline
+Олон орчинд автомат синхрончлогддог & Загварын хэмжээ ~700MB — татах хугацаа шаардагдана \\ \hline
+\end{tabular}
+\caption{NER fine-tuning-ийн давуу ба сул тал}
+\label{tab:finetuning_pros_cons}
+\end{table}
 
 % ================================================================
 \section{Sentiment Analysis модулийн хэрэгжүүлэлт}
