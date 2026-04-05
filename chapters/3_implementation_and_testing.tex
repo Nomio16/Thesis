@@ -552,55 +552,188 @@ Negative & 0.87 & 0.85 & 0.86 & 121 \\ \hline
 \section{Topic Modeling модулийн хэрэгжүүлэлт}
 % ================================================================
 
-\subsection{BERTopic-ийн жижиг датасетэд зориулсан fallback механизм}
+\subsection{Сэдэв загварчлалын аргуудын харьцуулалт}
 
-BERTopic-ийн HDBSCAN кластерчлал нь default тохиргоонд \texttt{min\_cluster\_size=10} байдаг тул 10-аас цөөн документийн бүх entity -1 (outlier) болж буцдаг байсан. Энэ асуудлыг жижиг датасетэд KMeans ашиглах fallback механизмаар шийдлээ:
+Сэдэв загварчлалын (topic modeling) гурван үндсэн аргыг Монгол хэлний текстэд хэрэглэх боломжийг харьцуулан судалсан. Хүснэгт~\ref{tab:topic_comparison}-д LDA, BERTopic (HDBSCAN), болон BERTopic (KMeans) аргуудыг гол шалгууруудаар харьцуулав.
 
-\begin{lstlisting}[language=Python, caption={BERTopic — HDBSCAN vs KMeans fallback}, basicstyle=\small\ttfamily, breaklines=true, frame=single, numbers=left]
-MIN_TINY_DOCS = 3      # хамгийн бага документын тоо
-MIN_BERTOPIC_DOCS = 10 # HDBSCAN ашиглах босго
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.5}
+\caption{Сэдэв загварчлалын аргуудын харьцуулалт}
+\label{tab:topic_comparison}
+\begin{tabular}{|p{3.2cm}|p{3.8cm}|p{3.8cm}|p{3.8cm}|}
+\hline
+\textbf{Шалгуур} & \textbf{LDA} & \textbf{BERTopic + HDBSCAN} & \textbf{BERTopic + KMeans} \\ \hline
 
-def _make_bertopic(self, n_docs: int):
-    if n_docs >= MIN_BERTOPIC_DOCS:
-        # Стандарт HDBSCAN — автоматаар outlier илрүүлнэ
-        cluster_model = HDBSCAN(
-            min_cluster_size=max(2, n_docs // 5),
-            min_samples=1,
-            prediction_data=True,
-        )
-    else:
-        # KMeans — бүх документыг cluster-т хуваарилна
-        n_clusters = max(2, min(n_docs // 2, MAX_TINY_TOPICS))
+\textbf{Суурь арга} &
+Bag-of-Words, Dirichlet тархалт &
+Transformer embedding + нягтрал кластерчлал &
+Transformer embedding + K тооны кластер \\ \hline
+
+\textbf{Сэдвийн тоо ($K$)} &
+Урьдчилан тодорхойлох шаардлагатай &
+Автоматаар тодорхойлогдоно &
+\texttt{min\_topics}, \texttt{max\_topics} параметрээр тохируулна \\ \hline
+
+\textbf{Семантик ойлголт} &
+Сул — зөвхөн үгийн давтамж &
+Хүчтэй — утгын ойролцоо байдлаар бүлэглэнэ &
+Хүчтэй — утгын ойролцоо байдлаар бүлэглэнэ \\ \hline
+
+\textbf{Жижиг датасет ($<$50 док)} &
+Тогтвортой ажилладаг &
+Бүтэлгүй — бүх документ outlier (-1) болдог &
+Сайн ажиллана, outlier үүсгэхгүй \\ \hline
+
+\textbf{Том датасет ($>$500 док)} &
+Сайн &
+Маш сайн — outlier шүүх чадвартай &
+Сайн — гэхдээ outlier илрүүлэхгүй \\ \hline
+
+\textbf{Монгол хэлний дэмжлэг} &
+Шаардлана: стемминг, stopword жагсаалт &
+Multilingual embedding автоматаар зохицуулна &
+Multilingual embedding + custom tokenizer \\ \hline
+
+\textbf{Тооцооллын хурд} &
+Хурдан (CPU: $<$1 сек / 500 док) &
+Удаан (embedding: 30--60 сек / 500 док) &
+Дунд (embedding: 30--60 сек, кластер: $<$1 сек) \\ \hline
+
+\textbf{Сонголтын үндэслэл} &
+\multicolumn{3}{c|}{\cellcolor{green!10}\textbf{BERTopic + KMeans-ийг сонгосон} — сэдвийн тоог хянах, семантик ойлголт, жижиг/том датасет аль алинд тогтвортой} \\ \hline
+
+\end{tabular}
+\end{table}
+
+\textbf{Аргын сонголтын үндэслэл:} LDA нь Bag-of-Words-д суурилдаг тул Монгол хэлний агглютинатив бүтцэд (нэг үгийн олон хэлбэр: ``монголын'', ``монголд'', ``монголоос'') сул ажиллана. Мөн сэдвийн тоо $K$-г урьдчилан тодорхойлох шаардлагатай нь бодит хэрэглээнд тохиромжгүй. BERTopic + HDBSCAN нь семантик embedding-д суурилан автоматаар сэдэв илрүүлдэг давуу талтай боловч 50-аас цөөн документийн хувьд бүх текстийг outlier (-1) болгодог ноцтой дутагдалтай. Иймд манай системд \textbf{BERTopic + KMeans}-ийг сонгож, \texttt{min\_topics} ба \texttt{max\_topics} параметрээр сэдвийн тоог хянах боломжтой болгосон.
+
+\subsection{BERTopic pipeline-ийн бүтэц}
+
+BERTopic нь дараах дөрвөн үе шатаас бүрддэг pipeline-аар ажилладаг бөгөөд бид үе шат бүрт Монгол хэлний тусгай тохиргоо хийсэн:
+
+\begin{enumerate}
+    \item \textbf{Embedding үүсгэх:} \texttt{paraphrase-multilingual-mpnet-base-v2} загвар ашиглан текст бүрийг 768 хэмжээст вектор руу хөрвүүлнэ. Энэ загвар нь 50+ хэл дэмждэг тул Монгол текстийг тусад нь fine-tune хийх шаардлагагүй.
+    \item \textbf{Хэмжээс бууруулах (UMAP):} 768 хэмжээст embedding-ийг 5 хэмжээст руу бууруулж, кластерчлалын өмнө чимээг (noise) арилгана.
+    \item \textbf{Кластерчлал (KMeans):} Бууруулсан embedding дээр KMeans алгоритм ажиллуулж, текстүүдийг сэдвийн бүлэгт хуваарилна. Сэдвийн тоог $n = \max(\texttt{min\_topics}, \min(N/10, \texttt{max\_topics}))$ томьёогоор тооцно (default: 5--15).
+    \item \textbf{Сэдвийн дүрслэл (c-TF-IDF):} Кластер бүрийн хамгийн онцлог (discriminative) үгсийг c-TF-IDF ашиглан олж, MaximalMarginalRelevance (MMR)-ээр олон янзтай keyword сонгоно.
+\end{enumerate}
+
+\subsection{Монгол хэлний тусгай тохиргоо}
+
+BERTopic-ийн c-TF-IDF алгоритм нь CountVectorizer ашиглан үг тоолдог тул Монгол хэлний агглютинатив дагавар нь нэг ойлголтыг олон токен болгон хуваадаг (жишээ нь: ``монголын'', ``монголд'', ``монголоос'' → гурван тусдаа токен). Үүнийг шийдэхийн тулд:
+
+\begin{itemize}
+    \item \textbf{Suffix stripping:} 13 төрлийн Монгол дагаварыг (харьяалах: -ын/-ийн, гарах: -аас/-ээс, чиглэх: -руу/-рүү, олон тоо: -ууд/-үүд г.м.) таслан root хэлбэрт шилжүүлнэ. Root нь $\geq 3$ тэмдэгт байх ёстой.
+    \item \textbf{Stopword шүүлтүүр:} 120+ Монгол stopword (``байна'', ``болох'', ``гэж'', ``энэ'' г.м.) болон мэдээний нийтлэг үгс (``аймаг'', ``хувь'', ``тэрбум'')-ийг шүүнэ.
+    \item \textbf{Custom tokenizer:} Дээрх хоёр алхмыг нэгтгэсэн \texttt{\_mongolian\_tokenizer} функцыг CountVectorizer-т дамжуулна.
+\end{itemize}
+
+\begin{lstlisting}[language=Python, caption={Монгол хэлний custom tokenizer — suffix stripping + stopword}, basicstyle=\small\ttfamily, breaklines=true, frame=single, numbers=left]
+_MN_SUFFIXES = [
+    "аас", "ээс", "оос", "өөс",  # Гарах
+    "ийн", "ын", "ний",           # Харьяалах
+    "тай", "тэй", "той",          # Хамтрах
+    "руу", "рүү",                  # Чиглэх
+    "ууд", "үүд",                  # Олон тоо
+    "ийг", "ыг",                   # Заах
+    "д", "т",                      # Өгөх-оршх
+]
+
+def _mongolian_tokenizer(text: str) -> List[str]:
+    tokens = []
+    for w in text.split():
+        if not w or len(w) < 2 or w.isdigit():
+            continue
+        stem = _mn_stem(w)  # suffix stripping
+        if stem.lower() not in _MN_STOPWORDS and len(stem) >= 2:
+            tokens.append(stem)
+    return tokens
+
+vectorizer = CountVectorizer(
+    tokenizer=_mongolian_tokenizer,
+    min_df=1, max_df=0.80,
+)
+\end{lstlisting}
+
+\subsection{Адаптив кластерчлал — KMeans fallback механизм}
+
+BERTopic-ийн HDBSCAN кластерчлал нь default тохиргоонд \texttt{min\_cluster\_size=10} байдаг тул 50-аас цөөн документийн бүх текст -1 (outlier) болж буцдаг. Энэ асуудлыг шийдэхийн тулд адаптив кластерчлал хэрэгжүүлсэн:
+
+\begin{lstlisting}[language=Python, caption={Адаптив кластерчлал — KMeans + тохируулж болох сэдвийн тоо}, basicstyle=\small\ttfamily, breaklines=true, frame=single, numbers=left]
+class TopicModeler:
+    def __init__(self, min_topics=5, max_topics=15):
+        self.min_topics = min_topics
+        self.max_topics = max_topics
+
+    def _make_bertopic(self, n_docs):
+        if n_docs >= 50:  # том датасет
+            n_clusters = max(self.min_topics,
+                             min(n_docs // 10, self.max_topics))
+        else:             # жижиг датасет
+            n_clusters = max(self.min_topics,
+                             min(n_docs // 3, self.max_topics))
+        n_clusters = min(n_clusters, n_docs)
+
         cluster_model = KMeans(n_clusters=n_clusters,
                                random_state=42, n_init="auto")
-    return BERTopic(
-        language=self.language,
-        embedding_model=self._load_embedding_model(),
-        hdbscan_model=cluster_model,
-    )
+        return BERTopic(
+            embedding_model=self._load_embedding_model(),
+            hdbscan_model=cluster_model,
+            vectorizer_model=vectorizer,  # Монгол tokenizer
+            representation_model=MMR(diversity=0.5),
+        )
 \end{lstlisting}
+
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\caption{Датасетийн хэмжээнээс хамаарсан сэдвийн тооны тооцоо}
+\label{tab:topic_cluster_count}
+\begin{tabular}{|c|c|l|}
+\hline
+\textbf{Документийн тоо} & \textbf{Сэдвийн тоо} & \textbf{Тооцоолол} \\ \hline
+10 & 5 & $\max(5, \min(10/3, 15)) = 5$ \\ \hline
+50 & 5 & $\max(5, \min(50/10, 15)) = 5$ \\ \hline
+100 & 10 & $\max(5, \min(100/10, 15)) = 10$ \\ \hline
+500 & 15 & $\max(5, \min(500/10, 15)) = 15$ \\ \hline
+1000 & 15 & $\max(5, \min(1000/10, 15)) = 15$ (дээд хязгаар) \\ \hline
+\end{tabular}
+\end{table}
 
 \subsection{Topic Modeling туршилтын үр дүн}
 
-500 нийтлэл дээр хийсэн туршилтад BERTopic нь 12 сэдэв автоматаар илрүүлсэн бөгөөд гол сэдвүүд нь:
+500 Монгол мэдээний нийтлэл дээр хийсэн туршилтад BERTopic + KMeans нь 15 сэдэв илрүүлсэн. Хүснэгт~\ref{tab:bertopic_results}-д гол сэдвүүдийг тоймлов.
 
 \begin{table}[h!]
 \centering
 \renewcommand{\arraystretch}{1.4}
-\begin{tabular}{|c|l|l|c|}
+\begin{tabular}{|c|p{5cm}|p{5cm}|c|}
 \hline
-\textbf{Сэдвийн ID} & \textbf{Нэр} & \textbf{Гол үгс} & \textbf{Документ тоо} \\ \hline
-0 & Улс төр & сонгууль, нам, ерөнхийлөгч & 134 \\ \hline
-1 & Эдийн засаг & инфляц, банк, төгрөг & 98 \\ \hline
-2 & Спорт & тэмцээн, медаль, тамирчин & 76 \\ \hline
-3 & Боловсрол & сургууль, оюутан, багш & 61 \\ \hline
--1 & Outlier & --- & 45 \\ \hline
+\textbf{ID} & \textbf{Сэдвийн нэр} & \textbf{Гол түлхүүр үгс} & \textbf{Док тоо} \\ \hline
+0 & Түгжрэл, залуучууд, эрүүл мэнд & түгжрэл, залуучууд, мэнд, хүртээмж & 76 \\ \hline
+1 & Блокчэйн, стартап, компани & блокчэйн, стартап, компани, боломж & 73 \\ \hline
+2 & Комисс, эрх, тайлан, алт & комисс, эрх, тайлан, алт & 41 \\ \hline
+3 & Өсөх, сүү, үйлдвэр, орлого & өсөх, сүү, үйлдвэр, орлого & 40 \\ \hline
+4 & Үнэ, тогтолцоо, олгогдож, нэвтэрч & үнэ, тогтолцоо, олгогдож & 40 \\ \hline
+5 & Инноваци, үнэ, тэжээл, хөдөө & инноваци, үнэ, тэжээл, хөдөө & 38 \\ \hline
+6 & Алтны олборлол, үргэлжлэл & алтны, олборлол, үргэлжилж, амжилт & 31 \\ \hline
+\multicolumn{3}{|r|}{\textit{... нийт 15 сэдэв}} & \textbf{500} \\ \hline
 \end{tabular}
-\caption{BERTopic-ийн илрүүлсэн гол сэдвүүд (500 нийтлэл)}
+\caption{BERTopic + KMeans-ийн илрүүлсэн гол сэдвүүд (500 нийтлэл)}
 \label{tab:bertopic_results}
 \end{table}
 
-\textbf{Давуу тал:} Урьдчилан мэдэгдэхгүй шинэ сэдэв автоматаар илрүүлдэг; embedding-д суурилсан тул ижил утгатай олон хэлбэрийн үгсийг нэг кластерт хамруулна. \textbf{Сул тал:} 10-аас цөөн документийн хувьд HDBSCAN бүтэлгүйтэх тул KMeans fallback шаардагдсан; sургалт болон inference нь CPU дээр 2--5 секунд зарцуулдаг.
+\subsection{Үр дүнгийн шинжилгээ}
+
+\begin{itemize}
+    \item \textbf{Семантик ялгарал:} Embedding-д суурилсан кластерчлал нь ``блокчэйн стартап'' ба ``IT компани'' сэдвүүдийг ялгаж чадсан — LDA-д ийм ялгаа гарахгүй, учир нь хоёулаа ``компани'' гэдэг нийтлэг үг агуулдаг.
+    \item \textbf{Custom tokenizer-ийн нөлөө:} Suffix stripping-гүй тохиолдолд ``малчдын'', ``малчид'', ``малчдад'' гурван тусдаа keyword болдог байсан бол одоо ``малч'' нэг keyword болж нэгдсэн.
+    \item \textbf{Stopword-ийн нөлөө:} ``байна'', ``болох'', ``аймаг'' зэрэг үгсийг шүүснээр сэдвийн keyword-ийн мэдээллийн агуулга нэмэгдсэн.
+    \item \textbf{Хурд:} GPU (T4) дээр 500 текстийн embedding 8--12 секунд, KMeans кластерчлал $<$1 секунд, нийт pipeline 10--15 секунд зарцуулсан.
+\end{itemize}
+
+\textbf{Давуу тал:} Урьдчилан мэдэгдэхгүй шинэ сэдэв автоматаар илрүүлдэг; embedding-д суурилсан тул ижил утгатай олон хэлбэрийн үгсийг нэг кластерт хамруулна; \texttt{min\_topics}/\texttt{max\_topics} параметрээр сэдвийн тоог хянах боломжтой. \textbf{Сул тал:} Embedding тооцоолол нь CPU дээр 30--60 секунд зарцуулдаг (GPU шаардлагатай); KMeans нь outlier илрүүлэхгүй тул шуугиантай документыг ч ямар нэг сэдэвт оноодог.
 
 % ================================================================
 \section{Network Analysis модулийн хэрэгжүүлэлт}
